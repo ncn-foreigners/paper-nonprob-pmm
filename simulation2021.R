@@ -222,16 +222,25 @@ pp <- ggplot(data = df, aes(x = est_name, y = diff)) +
   xlab("Estimator name") +
   ylab("Estimate error")
 
-df |> 
-  group_by(y_name, est_name) |>
-  group_split() |>
-  sapply(FUN = function(x) {
-    prop.test(x$covr, n = rep(1, 500), p = rep(.95, 500))$conf.int
-  })
-
 pp2 <- df |> 
-  group_by(y_name, est_name) |> 
-  summarise(n = n(), mean_covr = mean(covr))
+  group_by(y_name, est_name) |>
+  group_modify(.f = function(x, y) {
+    xx <- binom.test(c(sum(x$covr), sum(1 - x$covr)), p = .95, n = 500)
+    res <- data.frame(
+      xx$conf.int[1],
+      xx$conf.int[2],
+      xx$estimate
+    )
+    colnames(res) <- c("lower", "upper", "mean")
+    res
+  }) |>
+  mutate(est_name = paste0(est_name, " - ", y_name)) |> 
+  ggplot(aes(y = est_name, x = mean)) +
+  geom_point(col = "blue", size = 5) +
+  geom_errorbar(aes(xmin = lower, xmax = upper)) +
+  theme_bw() +
+  xlab("Coverage") +
+  ylab("Estimator and Y")
 
-ggsave("results/kim2021-pmm-500-sims-plot-errors.pdf", pp)
-ggsave("results/kim2021-pmm-500-sims-plot-coverage.pdf", pp2)
+ggsave("results/kim2021-pmm-500-sims-plot-errors.png", pp)
+ggsave("results/kim2021-pmm-500-sims-plot-coverage.png", pp2)

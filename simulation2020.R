@@ -50,7 +50,7 @@ cl <- makeCluster(cores)
 
 registerDoParallel(cl)
 
-res <- foreach(k=1:7, .combine = rbind,
+res <- foreach(k=1:100, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "sampling"),
                .verbose = TRUE) %dopar% {
   ## generate sample
@@ -350,107 +350,109 @@ stopCluster(cl)
 res <- as.data.frame(res)
 
 colnames(res) <- c(
-  "Y_11-est-yhat-yhat-match-no-var-sel-est",
-  "Y_11-est-yhat-yhat-match-no-var-sel-se",
-  "Y_11-est-yhat-yhat-match-no-var-sel-lower",
-  "Y_11-est-yhat-yhat-match-no-var-sel-upper",
-  "Y_11-est-yhat-yhat-match-var-sel-est",
-  "Y_11-est-yhat-yhat-match-var-sel-se",
-  "Y_11-est-yhat-yhat-match-var-sel-lower",
-  "Y_11-est-yhat-yhat-match-var-sel-upper",
-  "Y_11-est-yhat-y-match-no-var-sel-est",
-  "Y_11-est-yhat-y-match-no-var-sel-se",
-  "Y_11-est-yhat-y-match-no-var-sel-lower",
-  "Y_11-est-yhat-y-match-no-var-sel-upper",
-  "Y_11-est-yhat-y-match-var-sel-est",
-  "Y_11-est-yhat-y-match-var-sel-se",
-  "Y_11-est-yhat-y-match-var-sel-lower",
-  "Y_11-est-yhat-y-match-var-sel-upper",
-  "Y_11-est-mi-no-var-sel-est",
-  "Y_11-est-mi-no-var-sel-se",
-  "Y_11-est-mi-no-var-sel-lower",
-  "Y_11-est-mi-no-var-sel-upper",
-  "Y_11-est-mi-var-sel-est",
-  "Y_11-est-mi-var-sel-se",
-  "Y_11-est-mi-var-sel-lower",
-  "Y_11-est-mi-var-sel-upper",
+  "Y_11-yhat-yhat-match-no-var-sel-est",
+  "Y_11-yhat-yhat-match-no-var-sel-se",
+  "Y_11-yhat-yhat-match-no-var-sel-lower",
+  "Y_11-yhat-yhat-match-no-var-sel-upper",
+  "Y_11-yhat-yhat-match-var-sel-est",
+  "Y_11-yhat-yhat-match-var-sel-se",
+  "Y_11-yhat-yhat-match-var-sel-lower",
+  "Y_11-yhat-yhat-match-var-sel-upper",
+  "Y_11-yhat-y-match-no-var-sel-est",
+  "Y_11-yhat-y-match-no-var-sel-se",
+  "Y_11-yhat-y-match-no-var-sel-lower",
+  "Y_11-yhat-y-match-no-var-sel-upper",
+  "Y_11-yhat-y-match-var-sel-est",
+  "Y_11-yhat-y-match-var-sel-se",
+  "Y_11-yhat-y-match-var-sel-lower",
+  "Y_11-yhat-y-match-var-sel-upper",
+  "Y_11-mi-no-var-sel-est",
+  "Y_11-mi-no-var-sel-se",
+  "Y_11-mi-no-var-sel-lower",
+  "Y_11-mi-no-var-sel-upper",
+  "Y_11-mi-var-sel-est",
+  "Y_11-mi-var-sel-se",
+  "Y_11-mi-var-sel-lower",
+  "Y_11-mi-var-sel-upper",
   "Y_11_true_mean",
-  "Y_12-est-yhat-yhat-match-no-var-sel-est",
-  "Y_12-est-yhat-yhat-match-no-var-sel-se",
-  "Y_12-est-yhat-yhat-match-no-var-sel-lower",
-  "Y_12-est-yhat-yhat-match-no-var-sel-upper",
-  "Y_12-est-yhat-yhat-match-var-sel-est",
-  "Y_12-est-yhat-yhat-match-var-sel-se",
-  "Y_12-est-yhat-yhat-match-var-sel-lower",
-  "Y_12-est-yhat-yhat-match-var-sel-upper",
-  "Y_12-est-yhat-y-match-no-var-sel-est",
-  "Y_12-est-yhat-y-match-no-var-sel-se",
-  "Y_12-est-yhat-y-match-no-var-sel-lower",
-  "Y_12-est-yhat-y-match-no-var-sel-upper",
-  "Y_12-est-yhat-y-match-var-sel-est",
-  "Y_12-est-yhat-y-match-var-sel-se",
-  "Y_12-est-yhat-y-match-var-sel-lower",
-  "Y_12-est-yhat-y-match-var-sel-upper",
-  "Y_12-est-mi-no-var-sel-est",
-  "Y_12-est-mi-no-var-sel-se",
-  "Y_12-est-mi-no-var-sel-lower",
-  "Y_12-est-mi-no-var-sel-upper",
-  "Y_12-est-mi-var-sel-est",
-  "Y_12-est-mi-var-sel-se",
-  "Y_12-est-mi-var-sel-lower",
-  "Y_12-est-mi-var-sel-upper",
+  "Y_12-yhat-yhat-match-no-var-sel-est",
+  "Y_12-yhat-yhat-match-no-var-sel-se",
+  "Y_12-yhat-yhat-match-no-var-sel-lower",
+  "Y_12-yhat-yhat-match-no-var-sel-upper",
+  "Y_12-yhat-yhat-match-var-sel-est",
+  "Y_12-yhat-yhat-match-var-sel-se",
+  "Y_12-yhat-yhat-match-var-sel-lower",
+  "Y_12-yhat-yhat-match-var-sel-upper",
+  "Y_12-yhat-y-match-no-var-sel-est",
+  "Y_12-yhat-y-match-no-var-sel-se",
+  "Y_12-yhat-y-match-no-var-sel-lower",
+  "Y_12-yhat-y-match-no-var-sel-upper",
+  "Y_12-yhat-y-match-var-sel-est",
+  "Y_12-yhat-y-match-var-sel-se",
+  "Y_12-yhat-y-match-var-sel-lower",
+  "Y_12-yhat-y-match-var-sel-upper",
+  "Y_12-mi-no-var-sel-est",
+  "Y_12-mi-no-var-sel-se",
+  "Y_12-mi-no-var-sel-lower",
+  "Y_12-mi-no-var-sel-upper",
+  "Y_12-mi-var-sel-est",
+  "Y_12-mi-var-sel-se",
+  "Y_12-mi-var-sel-lower",
+  "Y_12-mi-var-sel-upper",
   "Y_12_true_mean",
-  "Y_21-est-yhat-yhat-match-no-var-sel-est",
-  "Y_21-est-yhat-yhat-match-no-var-sel-se",
-  "Y_21-est-yhat-yhat-match-no-var-sel-lower",
-  "Y_21-est-yhat-yhat-match-no-var-sel-upper",
-  "Y_21-est-yhat-yhat-match-var-sel-est",
-  "Y_21-est-yhat-yhat-match-var-sel-se",
-  "Y_21-est-yhat-yhat-match-var-sel-lower",
-  "Y_21-est-yhat-yhat-match-var-sel-upper",
-  "Y_21-est-yhat-y-match-no-var-sel-est",
-  "Y_21-est-yhat-y-match-no-var-sel-se",
-  "Y_21-est-yhat-y-match-no-var-sel-lower",
-  "Y_21-est-yhat-y-match-no-var-sel-upper",
-  "Y_21-est-yhat-y-match-var-sel-est",
-  "Y_21-est-yhat-y-match-var-sel-se",
-  "Y_21-est-yhat-y-match-var-sel-lower",
-  "Y_21-est-yhat-y-match-var-sel-upper",
-  "Y_21-est-mi-no-var-sel-est",
-  "Y_21-est-mi-no-var-sel-se",
-  "Y_21-est-mi-no-var-sel-lower",
-  "Y_21-est-mi-no-var-sel-upper",
-  "Y_21-est-mi-var-sel-est",
-  "Y_21-est-mi-var-sel-se",
-  "Y_21-est-mi-var-sel-lower",
-  "Y_21-est-mi-var-sel-upper",
+  "Y_21-yhat-yhat-match-no-var-sel-est",
+  "Y_21-yhat-yhat-match-no-var-sel-se",
+  "Y_21-yhat-yhat-match-no-var-sel-lower",
+  "Y_21-yhat-yhat-match-no-var-sel-upper",
+  "Y_21-yhat-yhat-match-var-sel-est",
+  "Y_21-yhat-yhat-match-var-sel-se",
+  "Y_21-yhat-yhat-match-var-sel-lower",
+  "Y_21-yhat-yhat-match-var-sel-upper",
+  "Y_21-yhat-y-match-no-var-sel-est",
+  "Y_21-yhat-y-match-no-var-sel-se",
+  "Y_21-yhat-y-match-no-var-sel-lower",
+  "Y_21-yhat-y-match-no-var-sel-upper",
+  "Y_21-yhat-y-match-var-sel-est",
+  "Y_21-yhat-y-match-var-sel-se",
+  "Y_21-yhat-y-match-var-sel-lower",
+  "Y_21-yhat-y-match-var-sel-upper",
+  "Y_21-mi-no-var-sel-est",
+  "Y_21-mi-no-var-sel-se",
+  "Y_21-mi-no-var-sel-lower",
+  "Y_21-mi-no-var-sel-upper",
+  "Y_21-mi-var-sel-est",
+  "Y_21-mi-var-sel-se",
+  "Y_21-mi-var-sel-lower",
+  "Y_21-mi-var-sel-upper",
   "Y_21_true_mean",
-  "Y_22-est-yhat-yhat-match-no-var-sel-est",
-  "Y_22-est-yhat-yhat-match-no-var-sel-se",
-  "Y_22-est-yhat-yhat-match-no-var-sel-lower",
-  "Y_22-est-yhat-yhat-match-no-var-sel-upper",
-  "Y_22-est-yhat-yhat-match-var-sel-est",
-  "Y_22-est-yhat-yhat-match-var-sel-se",
-  "Y_22-est-yhat-yhat-match-var-sel-lower",
-  "Y_22-est-yhat-yhat-match-var-sel-upper",
-  "Y_22-est-yhat-y-match-no-var-sel-est",
-  "Y_22-est-yhat-y-match-no-var-sel-se",
-  "Y_22-est-yhat-y-match-no-var-sel-lower",
-  "Y_22-est-yhat-y-match-no-var-sel-upper",
-  "Y_22-est-yhat-y-match-var-sel-est",
-  "Y_22-est-yhat-y-match-var-sel-se",
-  "Y_22-est-yhat-y-match-var-sel-lower",
-  "Y_22-est-yhat-y-match-var-sel-upper",
-  "Y_22-est-mi-no-var-sel-est",
-  "Y_22-est-mi-no-var-sel-se",
-  "Y_22-est-mi-no-var-sel-lower",
-  "Y_22-est-mi-no-var-sel-upper",
-  "Y_22-est-mi-var-sel-est",
-  "Y_22-est-mi-var-sel-se",
-  "Y_22-est-mi-var-sel-lower",
-  "Y_22-est-mi-var-sel-upper",
+  "Y_22-yhat-yhat-match-no-var-sel-est",
+  "Y_22-yhat-yhat-match-no-var-sel-se",
+  "Y_22-yhat-yhat-match-no-var-sel-lower",
+  "Y_22-yhat-yhat-match-no-var-sel-upper",
+  "Y_22-yhat-yhat-match-var-sel-est",
+  "Y_22-yhat-yhat-match-var-sel-se",
+  "Y_22-yhat-yhat-match-var-sel-lower",
+  "Y_22-yhat-yhat-match-var-sel-upper",
+  "Y_22-yhat-y-match-no-var-sel-est",
+  "Y_22-yhat-y-match-no-var-sel-se",
+  "Y_22-yhat-y-match-no-var-sel-lower",
+  "Y_22-yhat-y-match-no-var-sel-upper",
+  "Y_22-yhat-y-match-var-sel-est",
+  "Y_22-yhat-y-match-var-sel-se",
+  "Y_22-yhat-y-match-var-sel-lower",
+  "Y_22-yhat-y-match-var-sel-upper",
+  "Y_22-mi-no-var-sel-est",
+  "Y_22-mi-no-var-sel-se",
+  "Y_22-mi-no-var-sel-lower",
+  "Y_22-mi-no-var-sel-upper",
+  "Y_22-mi-var-sel-est",
+  "Y_22-mi-var-sel-se",
+  "Y_22-mi-var-sel-lower",
+  "Y_22-mi-var-sel-upper",
   "Y_22_true_mean"
 )
+
+true_values <- res[,c("Y_11_true_mean", "Y_12_true_mean", "Y_21_true_mean", "Y_22_true_mean")]
 
 df <- res |> 
   pivot_longer(cols = everything(), names_to = "column", values_to = "value") |>
@@ -477,13 +479,50 @@ df <- res |>
         )
       )
     ) |> as.character(),
-    column = str_extract(column, "(mean|upper|lower|true)")
+    column = str_extract(column, "(est|upper|lower|true)")
   ) |> 
   mutate(column = ifelse(is.na(column), "se", column)) |>
   pivot_wider(names_from = column,
-              values_from = value)
+              values_from = value,
+              values_fn = list) |>
+  select(-true) |>
+  unnest(cols = c(est, se, lower, upper))
 
+true_values <- true_values[1,] |> unlist()
 
+df$true <- rep(true_values, each = 600)
 
-saveRDS(res, file = "results/yang2020-pmm-500-sims.rds")
+pp <- ggplot(data = df, aes(x = est_name, y = est)) + 
+  geom_boxplot(position = "dodge") +
+  geom_hline(aes(yintercept = true), color = "red", linetype = "dashed") +
+  facet_wrap(~ y_name, ncol = 4, scales = "free_y") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  xlab("Estimator name") +
+  ylab("Predicted mean")
 
+pp2 <- df |> 
+  mutate(covr = lower < true & true < upper) |>
+  group_by(y_name, est_name) |>
+  group_modify(.f = function(x, y) {
+    xx <- binom.test(c(sum(x$covr), sum(1 - x$covr)), p = .95, n = 100)
+    res <- data.frame(
+      xx$conf.int[1],
+      xx$conf.int[2],
+      xx$estimate
+    )
+    colnames(res) <- c("lower", "upper", "mean")
+    res
+  }) |>
+  #mutate(est_name = paste0(est_name, " - ", y_name)) |> 
+  ggplot(aes(y = est_name, x = mean)) +
+  geom_point(col = "blue", size = 5) +
+  geom_errorbar(aes(xmin = lower, xmax = upper)) +
+  facet_wrap(~y_name, scale = "free_x") +
+  theme_bw() +
+  xlab("Coverage") +
+  ylab("Estimator")
+
+saveRDS(res, file = "results/yang2020-pmm-100-sims.rds")
+ggsave("results/yang2020-pmm-100-sims-plot-errors.png", pp)
+ggsave("results/yang2020-pmm-100-sims-plot-coverage.png", pp2)
