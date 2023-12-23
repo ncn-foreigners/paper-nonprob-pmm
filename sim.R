@@ -6,9 +6,9 @@ library(foreach)
 
 set.seed(123)
 
-cores <- detectCores()[1] - 1
+cores <- 5
 
-sims <- 7 * 100
+sims <- 5 * 100
 N <- 1e5
 n <- 100
 KK <- 2
@@ -270,4 +270,4 @@ df <- data.frame(
   )
 )
 
-df
+saveRDS(df, file = "results/custom-pmm-500-sims.rds")

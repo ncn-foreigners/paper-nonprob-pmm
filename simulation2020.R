@@ -5,7 +5,7 @@ library(doParallel)
 library(foreach)
 library(tidyverse)
 
-seed_for_sim <- 2023-12-22
+seed_for_sim <- 2023-12-23
 set.seed(seed_for_sim)
 
 N <- 10000
@@ -45,12 +45,12 @@ pi_B1 <- plogis(as.numeric(X %*% alpha_vec1)) ## PSM I: linear probability
 pop_data <- data.frame(pi_A, Y_11, Y_12, Y_21, Y_22, X[, 2:p])
 head(pop_data)
 
-cores <- parallel::detectCores() - 1
+cores <- 5
 cl <- makeCluster(cores)
 
 registerDoParallel(cl)
 
-res <- foreach(k=1:700, .combine = rbind,
+res <- foreach(k=1:500, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "sampling"),
                .verbose = TRUE) %dopar% {
   ## generate sample
@@ -495,6 +495,7 @@ df$true <- rep(true_values, each = NROW(df) / 4)
 pp <- ggplot(data = df, aes(x = est_name, y = est)) + 
   geom_violin(alpha = 0.8, draw_quantiles = 1:9 / 10, scale = "width") +
   geom_hline(aes(yintercept = true), color = "red", linetype = "dashed") +
+  stat_summary(fun = function(x) mean(x, na.rm = TRUE), geom = "point") +
   facet_wrap(~ y_name, ncol = 4, scales = "free_y") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
@@ -505,7 +506,7 @@ pp2 <- df |>
   mutate(covr = lower < true & true < upper) |>
   group_by(y_name, est_name) |>
   group_modify(.f = function(x, y) {
-    xx <- binom.test(c(sum(x$covr), sum(1 - x$covr)), p = .95, n = 700)
+    xx <- binom.test(c(sum(x$covr), sum(1 - x$covr)), p = .95, n = 500)
     res <- data.frame(
       xx$conf.int[1],
       xx$conf.int[2],
@@ -518,11 +519,12 @@ pp2 <- df |>
   ggplot(aes(y = est_name, x = mean)) +
   geom_point(col = "blue", size = 5) +
   geom_errorbar(aes(xmin = lower, xmax = upper)) +
+  geom_vline(aes(xintercept = .95), color = "red", linetype = "dashed") +
   facet_wrap(~y_name, scale = "free_x") +
   theme_bw() +
   xlab("Coverage") +
   ylab("Estimator")
 
-saveRDS(res, file = "results/yang2020-pmm-700-sims.rds")
-ggsave("results/yang2020-pmm-700-sims-plot-errors.png", pp)
-ggsave("results/yang2020-pmm-700-sims-plot-coverage.png", pp2)
+saveRDS(res, file = "results/yang2020-pmm-500-sims.rds")
+ggsave("results/yang2020-pmm-500-sims-plot-errors.png", pp)
+ggsave("results/yang2020-pmm-500-sims-plot-coverage.png", pp2)
