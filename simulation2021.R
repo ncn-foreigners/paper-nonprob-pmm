@@ -5,7 +5,7 @@ library(doParallel)
 library(foreach)
 library(tidyverse)
 
-seed_for_sim <- 2023-12-21
+seed_for_sim <- 2023-12-23
 set.seed(seed_for_sim)
 
 KK <- 1
@@ -16,7 +16,7 @@ n_b <- 1000
 n_b1 <- 0.7 * n_b
 n_b2 <- 0.3 * n_b
 
-cores <- parallel::detectCores() - 1
+cores <- 5
 cl <- makeCluster(cores)
 
 registerDoParallel(cl)
@@ -214,7 +214,7 @@ df <- df |>
   mutate(diff = est - true, covr = lower < true & true < upper)
 
 pp <- ggplot(data = df, aes(x = est_name, y = diff)) + 
-  geom_boxplot(position = "dodge") +
+  geom_violin(alpha = 0.8, draw_quantiles = 1:9 / 10, scale = "width") +
   geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed") +
   facet_wrap(~ y_name, ncol = 3, scales = "free_y") +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
@@ -238,6 +238,7 @@ pp2 <- df |>
   ggplot(aes(y = est_name, x = mean)) +
   geom_point(col = "blue", size = 5) +
   geom_errorbar(aes(xmin = lower, xmax = upper)) +
+  geom_vline(aes(xintercept = .95), color = "red", linetype = "dashed") +
   theme_bw() +
   xlab("Coverage") +
   ylab("Estimator and Y")

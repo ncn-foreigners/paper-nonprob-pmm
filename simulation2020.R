@@ -5,7 +5,7 @@ library(doParallel)
 library(foreach)
 library(tidyverse)
 
-seed_for_sim <- 2023-12-21
+seed_for_sim <- 2023-12-22
 set.seed(seed_for_sim)
 
 N <- 10000
@@ -50,7 +50,7 @@ cl <- makeCluster(cores)
 
 registerDoParallel(cl)
 
-res <- foreach(k=1:100, .combine = rbind,
+res <- foreach(k=1:700, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "sampling"),
                .verbose = TRUE) %dopar% {
   ## generate sample
@@ -490,10 +490,10 @@ df <- res |>
 
 true_values <- true_values[1,] |> unlist()
 
-df$true <- rep(true_values, each = 600)
+df$true <- rep(true_values, each = NROW(df) / 4)
 
 pp <- ggplot(data = df, aes(x = est_name, y = est)) + 
-  geom_boxplot(position = "dodge") +
+  geom_violin(alpha = 0.8, draw_quantiles = 1:9 / 10, scale = "width") +
   geom_hline(aes(yintercept = true), color = "red", linetype = "dashed") +
   facet_wrap(~ y_name, ncol = 4, scales = "free_y") +
   theme_bw() +
@@ -505,7 +505,7 @@ pp2 <- df |>
   mutate(covr = lower < true & true < upper) |>
   group_by(y_name, est_name) |>
   group_modify(.f = function(x, y) {
-    xx <- binom.test(c(sum(x$covr), sum(1 - x$covr)), p = .95, n = 100)
+    xx <- binom.test(c(sum(x$covr), sum(1 - x$covr)), p = .95, n = 700)
     res <- data.frame(
       xx$conf.int[1],
       xx$conf.int[2],
@@ -523,6 +523,6 @@ pp2 <- df |>
   xlab("Coverage") +
   ylab("Estimator")
 
-saveRDS(res, file = "results/yang2020-pmm-100-sims.rds")
-ggsave("results/yang2020-pmm-100-sims-plot-errors.png", pp)
-ggsave("results/yang2020-pmm-100-sims-plot-coverage.png", pp2)
+saveRDS(res, file = "results/yang2020-pmm-700-sims.rds")
+ggsave("results/yang2020-pmm-700-sims-plot-errors.png", pp)
+ggsave("results/yang2020-pmm-700-sims-plot-coverage.png", pp2)
