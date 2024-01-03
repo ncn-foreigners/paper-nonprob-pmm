@@ -15,8 +15,9 @@ KK <- 2
 
 x1 <- rnorm(n = N, mean = 1, sd = 1)
 x2 <- rexp(n = N, rate = 1)
-epsilon <- rnorm(n = N, sd = 2.5) # rnorm(N)
+epsilon <- rnorm(n = N, sd = 2.5)
 p1 <- exp(x2)/(1+exp(x2))
+p2 <- exp(x1)/(1+exp(x1))
 population <- data.frame(
   x1,
   x2,
@@ -39,7 +40,14 @@ res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy"),
                .options.snow = opts) %dopar% {
   flag_srs <- rbinom(n = N, size = 1, prob = n / N)
-  flag_bd1 <- c(rbinom(n = 1:(N - 10000), size = 1, prob = p1), rep(0, 10000))
+  #flag_bd1 <- c(rbinom(n = 1:(N - 10000), size = 1, prob = p1), rep(0, 10000))
+  # flag_bd1 <- pmin(rbinom(n = 1:N, size = 1, prob = p1),
+  #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
+  flag_bd1 <- pmin(
+    rbinom(n = 1:N, size = 1, prob = p1),
+    population$x1 < quantile(population$x1, .5),
+    quantile(population$x2, .5) < population$x2
+  )
   base_w_bd <- N/sum(flag_bd1)
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
                            data = subset(population, flag_srs == 1))
@@ -48,6 +56,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
+    method_outcome = "glm",
     pop_size = N,
     family_outcome = "gaussian"
   )
@@ -98,6 +107,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
+    method_outcome = "glm",
     pop_size = N,
     family_outcome = "gaussian"
   )
@@ -269,7 +279,7 @@ df <- data.frame(
     var(res[, 15] - res[, 22]),
     var(res[, 16] - res[, 22])
   ),
-  eoor_se = c(
+  error_se = c(
     sd(res[,  1] - res[, 11]),
     sd(res[,  2] - res[, 11]),
     sd(res[,  3] - res[, 11]),
