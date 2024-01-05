@@ -4,18 +4,23 @@ library(nonprobsvy)
 library(doSNOW)
 library(progress)
 
-set.seed(123)
+set.seed(1)
 
 cores <- 5
 
 sims <- 5 * 100
 N <- 1e5
 n <- 100
-KK <- 2
+KK <- 7
 
 x1 <- rnorm(n = N, mean = 1, sd = 1)
 x2 <- rexp(n = N, rate = 1)
-epsilon <- rnorm(n = N, sd = 2.5)
+sigma <- diag(2, nrow = 5)
+sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = 1, min = -.7)
+sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
+sigma
+epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector()
+
 p1 <- exp(x2)/(1+exp(x2))
 p2 <- exp(x1)/(1+exp(x1))
 population <- data.frame(
@@ -40,6 +45,7 @@ res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy"),
                .options.snow = opts) %dopar% {
   flag_srs <- rbinom(n = N, size = 1, prob = n / N)
+  flag_bd1 <- c(rbinom(n = 1:N, size = 1, prob = p1))
   #flag_bd1 <- c(rbinom(n = 1:(N - 10000), size = 1, prob = p1), rep(0, 10000))
   # flag_bd1 <- pmin(rbinom(n = 1:N, size = 1, prob = p1),
   #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
