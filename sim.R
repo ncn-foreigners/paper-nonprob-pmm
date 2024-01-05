@@ -4,21 +4,23 @@ library(nonprobsvy)
 library(doSNOW)
 library(progress)
 
-set.seed(1)
+set.seed(123)
 
 cores <- 5
 
 sims <- 5 * 100
 N <- 1e5
 n <- 100
-KK <- 7
+KK <- 2
 
-x1 <- rnorm(n = N, mean = 1, sd = 1)
+sigma <- diag(1, nrow = 5)
+sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = .5, min = -.5)
+sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
+x1 <- MASS::mvrnorm(n = N / 5, mu = rep(1, 5), Sigma = sigma) |> as.vector()
 x2 <- rexp(n = N, rate = 1)
 sigma <- diag(2, nrow = 5)
 sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = 1, min = -.7)
 sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
-sigma
 epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector()
 
 p1 <- exp(x2)/(1+exp(x2))
