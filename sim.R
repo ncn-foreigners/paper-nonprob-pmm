@@ -9,9 +9,9 @@ set.seed(123)
 cores <- 5
 
 sims <- 5 * 100
-N <- 1e5
-n <- 100
-KK <- 2
+N <- 1e6
+n <- 500
+KK <- 3
 
 sigma <- diag(1, nrow = 5)
 sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = .5, min = -.5)
@@ -47,14 +47,14 @@ res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy"),
                .options.snow = opts) %dopar% {
   flag_srs <- rbinom(n = N, size = 1, prob = n / N)
-  flag_bd1 <- c(rbinom(n = 1:N, size = 1, prob = p1))
+  # flag_bd1 <- c(rbinom(n = 1:N, size = 1, prob = p1))
   #flag_bd1 <- c(rbinom(n = 1:(N - 10000), size = 1, prob = p1), rep(0, 10000))
   # flag_bd1 <- pmin(rbinom(n = 1:N, size = 1, prob = p1),
   #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
   flag_bd1 <- pmin(
     rbinom(n = 1:N, size = 1, prob = p1),
-    population$x1 < quantile(population$x1, .5),
-    quantile(population$x2, .5) < population$x2
+    population$x1 < quantile(population$x1, .6),
+    quantile(population$x2, .4) < population$x2
   )
   base_w_bd <- N/sum(flag_bd1)
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
@@ -337,4 +337,4 @@ df <- data.frame(
   )
 )
 
-saveRDS(df, file = "results/custom-pmm-500-sims.rds")
+#saveRDS(df, file = "results/custom-pmm-500-sims.rds")

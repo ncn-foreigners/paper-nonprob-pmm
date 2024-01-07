@@ -11,7 +11,7 @@ cores <- 5
 sims <- 5 * 100
 N <- 1e5
 n <- 100
-KK2 <- 1
+KK2 <- 4
 
 sigma <- diag(1, nrow = 5)
 sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = .5, min = -.5)
