@@ -1,10 +1,10 @@
 # instalacja z tego branchu
-#remotes::install_github("ncn-foreigners/nonprobsvy@dev_2")
+#remotes::install_github("https://github.com/ncn-foreigners/nonprobsvy/tree/dev")
 library(nonprobsvy)
 library(doSNOW)
 library(progress)
 
-set.seed(123)
+set.seed(stringr::str_split(lubridate::today(), "-") |> unlist() |> as.integer() |> sum())
 
 cores <- 5
 
@@ -53,8 +53,9 @@ res <- foreach(k=1:sims, .combine = rbind,
   #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
   flag_bd1 <- pmin(
     rbinom(n = 1:N, size = 1, prob = p1),
-    population$x1 < quantile(population$x1, .6),
-    quantile(population$x2, .4) < population$x2
+    epsilon > quantile(epsilon, .8) |
+    quantile(epsilon, .2) > epsilon,
+    rbinom(n = 1:N, size = 1, prob = p2)
   )
   base_w_bd <- N/sum(flag_bd1)
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
@@ -337,4 +338,4 @@ df <- data.frame(
   )
 )
 
-#saveRDS(df, file = "results/custom-pmm-500-sims.rds")
+saveRDS(df, file = "results/custom-pmm-500-sims.rds")

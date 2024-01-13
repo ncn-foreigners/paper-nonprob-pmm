@@ -4,7 +4,7 @@ library(nonprobsvy)
 library(doSNOW)
 library(progress)
 
-set.seed(123)
+set.seed(stringr::str_split(lubridate::today(), "-") |> unlist() |> as.integer() |> sum())
 
 cores <- 5
 
@@ -28,8 +28,8 @@ p2 <- exp(x1)/(1+exp(x1))
 population <- data.frame(
   x1,
   x2,
-  y1 = 1 + x1 * .2 + x2 * .1 + epsilon,
-  y2 = -2 + 0.1 * (x1 - 0.5)^2 + x2 * .5 + epsilon,
+  y1 = 1 + x1 * .5 + x2 * .35 + epsilon,
+  y2 = -1.2 + (x1 - 0.5) ^ 2 + atan(x2) ^ (3 + sin(x1 + x2)) + sin(x1) * cos(x2) + epsilon, # weird
   p1 = p1,
   base_w_srs = N/n
 )
@@ -53,8 +53,9 @@ res <- foreach(k=1:sims, .combine = rbind,
   #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
   flag_bd1 <- pmin(
     rbinom(n = 1:N, size = 1, prob = p1),
-    population$x1 < quantile(population$x1, .5),
-    quantile(population$x2, .5) < population$x2
+    epsilon > quantile(epsilon, .8) |
+      quantile(epsilon, .2) > epsilon,
+    rbinom(n = 1:N, size = 1, prob = p2)
   )
   base_w_bd <- N/sum(flag_bd1)
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,

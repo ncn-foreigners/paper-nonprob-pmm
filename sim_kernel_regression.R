@@ -5,7 +5,7 @@ library(dbscan)
 library(doSNOW)
 library(progress)
 
-set.seed(321)
+set.seed(stringr::str_split(lubridate::today(), "-") |> unlist() |> as.integer() |> sum())
 
 cores <- 5
 
@@ -31,7 +31,7 @@ population <- data.frame(
   x2,
   y1 = 1 + x1 * .2 + x2 * .1 + epsilon, # linear
   y2 = -1.2 + (x1 - 0.5) ^ 2 + atan(x2) ^ (3 + sin(x1 + x2)) + sin(x1) * cos(x2) + epsilon, # weird
-  y3 = x1 * x2 * epsilon, # additive
+  y3 = x1 * x2 * epsilon, # multiplicative
   p1 = p1,
   base_w_srs = N/n
 )
@@ -65,7 +65,6 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "glm",
-    pop_size = N,
     family_outcome = "gaussian"
   )
   
@@ -74,7 +73,6 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
-    pop_size = N,
     family_outcome = "gaussian",
     control_outcome = controlOut(k = KK, predictive_match = 2),
     control_inference = controlInf(pmm_exact_se = TRUE)
@@ -85,7 +83,6 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "glm",
-    pop_size = N,
     family_outcome = "gaussian"
   )
   
@@ -94,7 +91,6 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
-    pop_size = N,
     family_outcome = "gaussian",
     control_outcome = controlOut(k = KK, predictive_match = 2),
     control_inference = controlInf(pmm_exact_se = TRUE)
@@ -105,7 +101,6 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "glm",
-    pop_size = N,
     family_outcome = "gaussian"
   )
   
@@ -114,7 +109,6 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
-    pop_size = N,
     family_outcome = "gaussian",
     control_outcome = controlOut(k = KK, predictive_match = 2),
     control_inference = controlInf(pmm_exact_se = TRUE)
@@ -153,9 +147,9 @@ res <- foreach(k=1:sims, .combine = rbind,
   y_nu2 <- apply(nn2$id, MARGIN = 1,
                  FUN = function(x) mean(population[flag_bd1 == 1, "y1"][x]))
   
-  (mu_hat_y1   <- weighted.mean(yhat_prob, 1 / sample_prob$allprob[,1]))
-  mu_hat_1_y1 <- weighted.mean(y_nu1, 1 / sample_prob$allprob[,1])
-  mu_hat_2_y1 <- weighted.mean(y_nu2, 1 / sample_prob$allprob[,1])
+  mu_hat_y1   <- sum(yhat_prob / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
+  mu_hat_1_y1 <- sum(y_nu1 / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
+  mu_hat_2_y1 <- sum(y_nu2 / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
   
   ## y2
   
@@ -188,9 +182,9 @@ res <- foreach(k=1:sims, .combine = rbind,
   y_nu2 <- apply(nn2$id, MARGIN = 1,
                  FUN = function(x) mean(population[flag_bd1 == 1, "y2"][x]))
   
-  (mu_hat_y2   <- weighted.mean(yhat_prob, 1 / sample_prob$allprob[,1]))
-  mu_hat_1_y2 <- weighted.mean(y_nu1, 1 / sample_prob$allprob[,1])
-  mu_hat_2_y2 <- weighted.mean(y_nu2, 1 / sample_prob$allprob[,1])
+  mu_hat_y2   <- sum(yhat_prob / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
+  mu_hat_1_y2 <- sum(y_nu1 / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
+  mu_hat_2_y2 <- sum(y_nu2 / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
   
   ## y3
   
@@ -223,9 +217,9 @@ res <- foreach(k=1:sims, .combine = rbind,
   y_nu2 <- apply(nn2$id, MARGIN = 1,
                  FUN = function(x) mean(population[flag_bd1 == 1, "y3"][x]))
   
-  (mu_hat_y3   <- weighted.mean(yhat_prob, 1 / sample_prob$allprob[,1]))
-  mu_hat_1_y3 <- weighted.mean(y_nu1, 1 / sample_prob$allprob[,1])
-  mu_hat_2_y3 <- weighted.mean(y_nu2, 1 / sample_prob$allprob[,1])
+  mu_hat_y3   <- sum(yhat_prob / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
+  mu_hat_1_y3 <- sum(y_nu1 / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
+  mu_hat_2_y3 <- sum(y_nu2 / sample_prob$allprob[,1]) / sum(sample_prob$allprob[,1] ^ -1)
   
   cbind(
     pmm1$output$mean, glm1$output$mean, mu_hat_y1,
@@ -302,11 +296,11 @@ df <- data.frame(
     "non-linear kernel imputation",
     "non-linear kernel-pmm yhat - y",
     "non-linear kernel-pmm yhat - yhat",
-    "additive glm-pmm",
-    "additive glm",
-    "additive kernel imputation",
-    "additive kernel-pmm yhat - y",
-    "additive kernel-pmm yhat - yhat"
+    "multiplicative glm-pmm",
+    "multiplicative glm",
+    "multiplicative kernel imputation",
+    "multiplicative kernel-pmm yhat - y",
+    "multiplicative kernel-pmm yhat - yhat"
   )
 )
 
