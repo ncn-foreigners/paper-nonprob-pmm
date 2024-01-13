@@ -1,15 +1,17 @@
 # coverage 
 library(nonprobsvy)
 library(sampling)
-library(doParallel)
+library(doSNOW)
+library(progress)
 library(foreach)
 library(tidyverse)
 
-seed_for_sim <- 2023-12-23
+seed_for_sim <- str_split(today(), "-") |> unlist() |> as.integer() |> sum()
 set.seed(seed_for_sim)
 
 N <- 10000
 n_A <- 500
+sims <- 500
 p <- 50
 KK <- 1
 alpha_vec1 <- c(-2, 1, 1, 1, 1, rep(0, p - 5))
@@ -47,12 +49,17 @@ head(pop_data)
 
 cores <- 5
 cl <- makeCluster(cores)
+clusterExport(cl, c("N", "n"))
 
-registerDoParallel(cl)
+registerDoSNOW(cl)
 
-res <- foreach(k=1:500, .combine = rbind,
+pb <- progress_bar$new(total = sims)
+
+opts <- list(progress = \(n) pb$tick())
+
+res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "sampling"),
-               .verbose = TRUE) %dopar% {
+               .options.snow = opts) %dopar% {
   ## generate sample
   flag_B1 <- rbinom(N, 1, prob = pi_B1)
   flag_A <- UPpoisson(pik = pi_A)

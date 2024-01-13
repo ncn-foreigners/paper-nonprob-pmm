@@ -1,17 +1,19 @@
 # coverage 
 library(nonprobsvy)
 library(sampling)
-library(doParallel)
+library(doSNOW)
+library(progress)
 library(foreach)
 library(tidyverse)
 
-seed_for_sim <- 2023-12-23
+seed_for_sim <- str_split(today(), "-") |> unlist() |> as.integer() |> sum()
 set.seed(seed_for_sim)
 
 KK <- 1
 
 N <- 100000
 n_a <- 500
+sims <- 500
 n_b <- 1000
 n_b1 <- 0.7 * n_b
 n_b2 <- 0.3 * n_b
@@ -19,11 +21,15 @@ n_b2 <- 0.3 * n_b
 cores <- 5
 cl <- makeCluster(cores)
 
-registerDoParallel(cl)
+registerDoSNOW(cl)
 
-res <- foreach(k=1:500, .combine = rbind,
+pb <- progress_bar$new(total = sims)
+
+opts <- list(progress = \(n) pb$tick())
+
+res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "sampling"),
-               .verbose = TRUE) %dopar% {
+               .options.snow = opts) %dopar% {
   ## generate sample
   x <- rnorm(N, 2, 1)
   e <- rnorm(N)
