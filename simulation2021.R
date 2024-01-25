@@ -261,7 +261,6 @@ pp2 <- df |>
   geom_point(col = "blue", size = 5) +
   geom_errorbar(aes(xmin = lower, xmax = upper)) +
   geom_vline(aes(xintercept = .95), color = "red", linetype = "dashed") +
-  
   theme_bw() +
   xlab("Coverage") +
   ylab("Estimator and design")
