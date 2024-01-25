@@ -14,7 +14,7 @@ KK <- 1
 N <- 100000
 n_a <- 500
 sims <- 500
-n_b <- 1000
+n_b <- 2500
 n_b1 <- 0.7 * n_b
 n_b2 <- 0.3 * n_b
 
@@ -54,7 +54,9 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(y1 ~ x),
     data = sample_b,
     svydesign = svy_a,
+    pop_size = N,
     control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
@@ -63,7 +65,9 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(y2 ~ x),
     data = sample_b,
     svydesign = svy_a,
+    pop_size = N,
     control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
@@ -72,7 +76,9 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(y3 ~ x),
     data = sample_b,
     svydesign = svy_a,
+    pop_size = N,
     control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
@@ -83,7 +89,9 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(y1 ~ x),
     data = sample_b,
     svydesign = svy_a,
+    pop_size = N,
     control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
@@ -92,7 +100,9 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(y2 ~ x),
     data = sample_b,
     svydesign = svy_a,
+    pop_size = N,
     control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
@@ -101,7 +111,9 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(y3 ~ x),
     data = sample_b,
     svydesign = svy_a,
+    pop_size = N,
     control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
@@ -111,6 +123,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   est_mi_glm_y1 <- nonprob(
     outcome = as.formula(y1 ~ x),
     data = sample_b,
+    pop_size = N,
     svydesign = svy_a,
     family_outcome = "gaussian"
   )
@@ -118,6 +131,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   est_mi_glm_y2 <- nonprob(
     outcome = as.formula(y2 ~ x),
     data = sample_b,
+    pop_size = N,
     svydesign = svy_a,
     family_outcome = "gaussian"
   )
@@ -125,6 +139,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   est_mi_glm_y3 <- nonprob(
     outcome = as.formula(y3 ~ x),
     data = sample_b,
+    pop_size = N,
     svydesign = svy_a,
     family_outcome = "gaussian"
   )
@@ -246,6 +261,7 @@ pp2 <- df |>
   geom_point(col = "blue", size = 5) +
   geom_errorbar(aes(xmin = lower, xmax = upper)) +
   geom_vline(aes(xintercept = .95), color = "red", linetype = "dashed") +
+  
   theme_bw() +
   xlab("Coverage") +
   ylab("Estimator and design")
