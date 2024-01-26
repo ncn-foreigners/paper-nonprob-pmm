@@ -60,6 +60,7 @@ opts <- list(progress = \(n) pb$tick())
 
 res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "sampling"),
+               .errorhandling = "stop",
                .options.snow = opts) %dopar% {
   ## generate sample
   flag_B1 <- rbinom(N, 1, prob = pi_B1)
