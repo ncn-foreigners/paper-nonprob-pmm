@@ -72,7 +72,8 @@ sims <- 1000
 cores <- 8
 cl <- makeCluster(cores)
 registerDoSNOW(cl)
-pb <- progress_bar$new(total = sims)
+pb <- progress_bar$new(format = "[:bar] :percent [Elapsed: :elapsedfull || Remaining: :eta]",
+                       total = sims)
 opts <- list(progress = \(n) pb$tick())
 
 results_simulation2 <- foreach(k=1:sims, .combine = rbind,
