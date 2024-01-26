@@ -53,12 +53,14 @@ clusterExport(cl, c("N", "n"))
 
 registerDoSNOW(cl)
 
-pb <- progress_bar$new(total = sims)
+pb <- progress_bar$new(format = "[:bar] :percent [Elapsed: :elapsedfull || Remaining: :eta]",
+                       total = sims)
 
 opts <- list(progress = \(n) pb$tick())
 
 res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "sampling"),
+               .errorhandling = "stop",
                .options.snow = opts) %dopar% {
   ## generate sample
   flag_B1 <- rbinom(N, 1, prob = pi_B1)
@@ -459,6 +461,9 @@ colnames(res) <- c(
   "Y_22_true_mean"
 )
 
+saveRDS(res, file = "results/yang2020-pmm-500-sims.rds")
+res <- readRDS("results/yang2020-pmm-500-sims.rds")
+
 true_values <- res[,c("Y_11_true_mean", "Y_12_true_mean", "Y_21_true_mean", "Y_22_true_mean")]
 
 df <- res |> 
@@ -532,6 +537,5 @@ pp2 <- df |>
   xlab("Coverage") +
   ylab("Estimator")
 
-saveRDS(res, file = "results/yang2020-pmm-500-sims.rds")
 ggsave("results/yang2020-pmm-500-sims-plot-errors.png", pp)
 ggsave("results/yang2020-pmm-500-sims-plot-coverage.png", pp2)

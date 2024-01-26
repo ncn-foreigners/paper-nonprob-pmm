@@ -3,6 +3,7 @@
 library(nonprobsvy)
 library(doSNOW)
 library(progress)
+library(tidyverse)
 
 set.seed(stringr::str_split(lubridate::today(), "-") |> unlist() |> as.integer() |> sum())
 
@@ -39,27 +40,25 @@ clusterExport(cl, c("N", "n"))
 
 registerDoSNOW(cl)
 
-pb <- progress_bar$new(total = sims)
+pb <- progress_bar$new(format = "[:bar] :percent [Elapsed: :elapsedfull || Remaining: :eta]",
+                       total = sims)
 
 opts <- list(progress = \(n) pb$tick())
 
 res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy"),
                .options.snow = opts) %dopar% {
-  flag_srs <- rbinom(n = N, size = 1, prob = n / N)
   # flag_bd1 <- c(rbinom(n = 1:N, size = 1, prob = p1))
   #flag_bd1 <- c(rbinom(n = 1:(N - 10000), size = 1, prob = p1), rep(0, 10000))
   # flag_bd1 <- pmin(rbinom(n = 1:N, size = 1, prob = p1),
   #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
-  flag_bd1 <- pmin(
+  flag_bd1 <- pmax( # planned size ~~ 9K
     rbinom(n = 1:N, size = 1, prob = p1),
-    epsilon > quantile(epsilon, .8) |
-    quantile(epsilon, .2) > epsilon,
     rbinom(n = 1:N, size = 1, prob = p2)
   )
-  base_w_bd <- N/sum(flag_bd1)
+  base_w_bd <- N/n
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
-                           data = subset(population, flag_srs == 1))
+                           data = population[sample(1:N, n),])
 
   glm1 <- nonprob(
     outcome = y1 ~ x1 + x2,
@@ -338,4 +337,64 @@ df <- data.frame(
   )
 )
 
-saveRDS(df, file = "results/custom-pmm-500-sims.rds")
+saveRDS(res, file = "results/custom-pmm-500-sims-check-variance-large-nonprob.rds")
+res <- readRDS("results/custom-pmm-500-sims-check-variance-large-nonprob.rds")
+
+df <- rbind(
+  as.matrix(res[,c(c(1, 6, 23) +  0, 11)]), # y1 linear - yhat - yhat match
+  as.matrix(res[,c(c(1, 6, 23) +  1, 11)]), # y1 linear - yhat - y match
+  as.matrix(res[,c(c(1, 6, 23) +  2, 11)]), # y1 linear - yhat - yhat match third term included
+  as.matrix(res[,c(c(1, 6, 23) +  3, 11)]), # y1 linear - yhat - y match third term included
+  as.matrix(res[,c(c(1, 6, 23) +  4, 11)]), # y1 linear - glm
+  # ---------------------------------------------
+  as.matrix(res[,c(c(12, 17, 28) +  0, 22)]), # y2 highly non linear - yhat - yhat match
+  as.matrix(res[,c(c(12, 17, 28) +  1, 22)]), # y2 highly non linear - yhat - y match
+  as.matrix(res[,c(c(12, 17, 28) +  2, 22)]), # y2 highly non linear - yhat - yhat match loess
+  as.matrix(res[,c(c(12, 17, 28) +  3, 22)]), # y2 highly non linear - yhat - y match loess
+  as.matrix(res[,c(c(12, 17, 28) +  4, 22)])  # y2 highly non linear - glm
+) |>
+  as_tibble()
+
+colnames(df) <- c("est", "coverage", "se", "true")
+
+df[,"y_name"] <- paste0(rep(c("linear", "non-linear"), each = NROW(df) / 2))
+df[,"est_name"] <- rep(rep(c("yhat-y", "yhat-yhat",
+                             "yhat-y-third term included", "yhat-yhat-third term included",
+                             "glm"), each = NROW(df) / 10), 2)
+
+df <- df |>
+  mutate(diff = est - true)
+
+pp <- ggplot(data = df, aes(x = est_name, y = diff)) + 
+  geom_violin(alpha = 0.8, draw_quantiles = 1:9 / 10, scale = "width") +
+  stat_summary(fun = function(x) mean(x, na.rm = TRUE), geom = "point") +
+  geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed") +
+  facet_wrap(~ y_name, ncol = 3, scales = "free_y") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  xlab("Estimator name") +
+  ylab("Estimate error")
+
+pp2 <- df |> 
+  group_by(y_name, est_name) |>
+  group_modify(.f = function(x, y) {
+    xx <- binom.test(c(sum(x$coverage), sum(1 - x$coverage)), p = .95, n = sims)
+    res <- data.frame(
+      xx$conf.int[1],
+      xx$conf.int[2],
+      xx$estimate
+    )
+    colnames(res) <- c("lower", "upper", "mean")
+    res
+  }) |>
+  mutate(est_name = paste0(est_name, " - ", y_name)) |> 
+  ggplot(aes(y = est_name, x = mean)) +
+  geom_point(col = "blue", size = 5) +
+  geom_errorbar(aes(xmin = lower, xmax = upper)) +
+  geom_vline(aes(xintercept = .95), color = "red", linetype = "dashed") +
+  theme_bw() +
+  xlab("Coverage") +
+  ylab("Estimator and design")
+
+ggsave("results/custom-pmm-500-sims-check-variance-large-nonprob-plot-errors.png", pp)
+ggsave("results/custom-pmm-500-sims-check-variance-large-nonprob-plot-coverage.png", pp2)

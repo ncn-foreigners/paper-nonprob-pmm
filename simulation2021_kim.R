@@ -14,7 +14,7 @@ KK <- 1
 N <- 100000
 n_a <- 500
 sims <- 500
-n_b <- 2500
+n_b <- 1000
 n_b1 <- 0.7 * n_b
 n_b2 <- 0.3 * n_b
 
@@ -23,7 +23,8 @@ cl <- makeCluster(cores)
 
 registerDoSNOW(cl)
 
-pb <- progress_bar$new(total = sims)
+pb <- progress_bar$new(format = "[:bar] :percent [Elapsed: :elapsedfull || Remaining: :eta]",
+                       total = sims)
 
 opts <- list(progress = \(n) pb$tick())
 
@@ -218,6 +219,7 @@ colnames(res) <- c(
 )
 
 saveRDS(res, file = "results/kim2021-pmm-500-sims.rds")
+res <- readRDS("results/kim2021-pmm-500-sims.rds")
 
 df <- rbind(
   as.matrix(res[,c(1:4, 13)]), as.matrix(res[,c(1:4+4, 13)]), as.matrix(res[,c(1:4+8, 13)]), 

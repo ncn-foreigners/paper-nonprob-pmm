@@ -39,7 +39,8 @@ clusterExport(cl, c("N", "n"))
 
 registerDoSNOW(cl)
 
-pb <- progress_bar$new(total = sims)
+pb <- progress_bar$new(format = "[:bar] :percent [Elapsed: :elapsedfull || Remaining: :eta]",
+                       total = sims)
 
 opts <- list(progress = \(n) pb$tick())
 
@@ -48,13 +49,6 @@ res <- foreach(k=1:sims, .combine = rbind,
                .options.snow = opts,
                .errorhandling = "stop") %dopar% {
   flag_srs <- rbinom(n = N, size = 1, prob = n / N)
-  # flag_bd1 <- pmin(
-  #   rbinom(n = 1:N, size = 1, prob = p1),
-  #   epsilon > quantile(epsilon, .8) |
-  #     quantile(epsilon, .2) > epsilon,
-  #   rbinom(n = 1:N, size = 1, prob = p2)
-  # )
-  #flag_bd1 <- rbinom(n = 1:N, size = 1, prob = p2)
   # expected size ~~ 2k
   flag_bd1 <- pmin(rbinom(n = 1:N, size = 1, prob = p1 / 2),
                    rbinom(n = 1:N, size = 1, prob = p2))
@@ -444,6 +438,7 @@ pp <- ggplot(data = df, aes(x = est_name, y = diff)) +
   facet_wrap(~ y_name, ncol = 3, scales = "free_y") +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
   theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
   xlab("Estimator name") +
   ylab("Estimate error")
 
