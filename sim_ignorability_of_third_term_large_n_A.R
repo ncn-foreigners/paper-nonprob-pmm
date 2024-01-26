@@ -5,13 +5,13 @@ library(doSNOW)
 library(progress)
 library(tidyverse)
 
-set.seed(stringr::str_split(lubridate::today(), "-") |> unlist() |> as.integer() |> sum())
+set.seed(2051)
 
 cores <- 5
 
 sims <- 5 * 100
-N <- 1e6
-n <- 500
+N <- 1e5
+n <- 200
 KK <- 3
 
 sigma <- diag(1, nrow = 5)
@@ -24,8 +24,8 @@ sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = 1, min = -.7)
 sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
 epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector()
 
-p1 <- exp(x2)/(1+exp(x2))
-p2 <- exp(x1)/(1+exp(x1))
+p1 <- exp(x2 - 2.75) / (1 + exp(x2 - 2.75))
+p2 <- exp(x1 - 2.75) / (1 + exp(x1 - 2.75))
 population <- data.frame(
   x1,
   x2,
@@ -52,7 +52,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   #flag_bd1 <- c(rbinom(n = 1:(N - 10000), size = 1, prob = p1), rep(0, 10000))
   # flag_bd1 <- pmin(rbinom(n = 1:N, size = 1, prob = p1),
   #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
-  flag_bd1 <- pmax( # planned size ~~ 9K
+  flag_bd1 <- pmax( # planned size ~~ 333K (33% coverage)
     rbinom(n = 1:N, size = 1, prob = p1),
     rbinom(n = 1:N, size = 1, prob = p2)
   )
