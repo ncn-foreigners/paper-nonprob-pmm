@@ -241,8 +241,9 @@ tab1_ci <- results_simulation1_process[!is.na(ci), .(ci=mean(value)),
   melt(id.vars = c(1, 4,2,3)) |>
   transform(y=paste(y, variable, sep = "_")) |>
   transform(variable=NULL,
-            value = value*100) |>
-  dcast(... ~ y, value.var = "value")
+            value = value*100,
+            sample=as.character(as.numeric(sample)/100)) |>
+  dcast(... ~ y, value.var = "value") 
 
 ## stats
 tab1 <- results_simulation1_process[is.na(ci), .(bias=mean(value)-mean(trues), se = sd(value), 
@@ -252,15 +253,24 @@ tab1 <- results_simulation1_process[is.na(ci), .(bias=mean(value)-mean(trues), s
   transform(y=paste(y, variable, sep = "_")) |>
   transform(variable=NULL,
             value = value*100) |>
-  dcast(... ~ y, value.var = "value")
+  dcast(... ~ y, value.var = "value") |>
+  transform(type=ifelse(is.na(type), "srs", type))
 
+tab1[tab1_ci, on = c("type","est","sample"), ":="(y1_ci=i.y1_ci,y2_ci=i.y2_ci,y3_ci=i.y3_ci)]
+tab1[, y1_ci:=round(y1_ci,1)]
+tab1[, y2_ci:=round(y2_ci,1)]
+tab1[, y3_ci:=round(y3_ci,1)]
 
-tab1[, est:=factor(est, c("naive",  "glm", "nn","pmm1a", "pmm1b", "pmm5a", "pmm5b"), 
-                   c("Naive", "GLM", "NN", "PMM1A", "PMM1B", "PMM5A", "PMM5B")
+tab1[, est:=factor(est, c("naive",  "glm", "pmm1a", "pmm1b", "pmm5a", "pmm5b"), 
+                   c("Naive", "GLM", "PMM1A", "PMM1B", "PMM5A", "PMM5B")
                    , ordered = T)]
+
 tab1[, sample:=factor(sample, c(5,10), ordered = T)]
-setcolorder(tab1, c("type", "sample", "est", "y1_bias", "y1_se", "y1_rmse",
-                    "y2_bias", "y2_se", "y2_rmse", "y3_bias", "y3_se", "y3_rmse"))
+
+setcolorder(tab1, c("type", "sample", "est", 
+                    "y1_bias", "y1_se", "y1_rmse", "y1_ci",
+                    "y2_bias", "y2_se", "y2_rmse", "y2_ci",
+                    "y3_bias", "y3_se", "y3_rmse", "y3_ci"))
 
 ## report table1
 tab1[order(sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
