@@ -219,6 +219,7 @@ colnames(res) <- c(
 )
 
 saveRDS(res, file = "results/kim2021-pmm-500-sims.rds")
+res <- readRDS("results/kim2021-pmm-500-sims.rds")
 
 df <- rbind(
   as.matrix(res[,c(1:4, 13)]), as.matrix(res[,c(1:4+4, 13)]), as.matrix(res[,c(1:4+8, 13)]), 

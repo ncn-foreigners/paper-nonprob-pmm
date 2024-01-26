@@ -461,6 +461,9 @@ colnames(res) <- c(
   "Y_22_true_mean"
 )
 
+saveRDS(res, file = "results/yang2020-pmm-500-sims.rds")
+res <- readRDS("results/yang2020-pmm-500-sims.rds")
+
 true_values <- res[,c("Y_11_true_mean", "Y_12_true_mean", "Y_21_true_mean", "Y_22_true_mean")]
 
 df <- res |> 
@@ -534,6 +537,5 @@ pp2 <- df |>
   xlab("Coverage") +
   ylab("Estimator")
 
-saveRDS(res, file = "results/yang2020-pmm-500-sims.rds")
 ggsave("results/yang2020-pmm-500-sims-plot-errors.png", pp)
 ggsave("results/yang2020-pmm-500-sims-plot-coverage.png", pp2)

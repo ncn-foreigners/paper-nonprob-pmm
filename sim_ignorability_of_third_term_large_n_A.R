@@ -338,7 +338,7 @@ df <- data.frame(
 )
 
 saveRDS(res, file = "results/custom-pmm-500-sims-check-variance-large-nonprob.rds")
-
+res <- readRDS("results/custom-pmm-500-sims-check-variance-large-nonprob.rds")
 
 df <- rbind(
   as.matrix(res[,c(c(1, 6, 23) +  0, 11)]), # y1 linear - yhat - yhat match
@@ -370,8 +370,8 @@ pp <- ggplot(data = df, aes(x = est_name, y = diff)) +
   stat_summary(fun = function(x) mean(x, na.rm = TRUE), geom = "point") +
   geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed") +
   facet_wrap(~ y_name, ncol = 3, scales = "free_y") +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
   theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
   xlab("Estimator name") +
   ylab("Estimate error")
 
