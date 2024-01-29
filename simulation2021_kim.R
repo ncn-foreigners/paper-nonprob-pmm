@@ -6,7 +6,7 @@ library(progress)
 library(foreach)
 library(tidyverse)
 
-seed_for_sim <- str_split(today(), "-") |> unlist() |> as.integer() |> sum()
+seed_for_sim <- 2051
 set.seed(seed_for_sim)
 
 KK <- 1

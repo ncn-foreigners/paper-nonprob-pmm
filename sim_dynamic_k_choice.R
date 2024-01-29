@@ -5,9 +5,9 @@ library(doSNOW)
 library(progress)
 library(tidyverse)
 
-set.seed(stringr::str_split(lubridate::today(), "-") |> unlist() |> as.integer() |> sum())
+set.seed(2051)
 
-cores <- 5
+cores <- 8
 
 sims <- 5 * 100
 N <- 1e5

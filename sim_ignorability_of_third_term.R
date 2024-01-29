@@ -5,7 +5,7 @@ library(doSNOW)
 library(progress)
 library(tidyverse)
 
-set.seed(stringr::str_split(lubridate::today(), "-") |> unlist() |> as.integer() |> sum())
+set.seed(2051)
 
 cores <- 5
 
