@@ -300,6 +300,20 @@ df <- data.frame(
     mean(res[, 18] - res[, 26]),
     mean(res[, 19] - res[, 26])
   ),
+  rel_bias_prec = c(
+    100 * mean(res[,  1] - res[, 13]) / mean(res[, 13]),
+    100 * mean(res[,  2] - res[, 13]) / mean(res[, 13]),
+    100 * mean(res[,  3] - res[, 13]) / mean(res[, 13]),
+    100 * mean(res[,  4] - res[, 13]) / mean(res[, 13]),
+    100 * mean(res[,  5] - res[, 13]) / mean(res[, 13]),
+    100 * mean(res[,  6] - res[, 13]) / mean(res[, 13]),
+    100 * mean(res[, 14] - res[, 26]) / mean(res[, 26]),
+    100 * mean(res[, 15] - res[, 26]) / mean(res[, 26]),
+    100 * mean(res[, 16] - res[, 26]) / mean(res[, 26]),
+    100 * mean(res[, 17] - res[, 26]) / mean(res[, 26]),
+    100 * mean(res[, 18] - res[, 26]) / mean(res[, 26]),
+    100 * mean(res[, 19] - res[, 26]) / mean(res[, 26])
+  ),
   mse = c(
     mean((res[,  1] - res[, 13]) ^ 2),
     mean((res[,  2] - res[, 13]) ^ 2),
@@ -454,11 +468,12 @@ pp2 <- df |>
     colnames(res) <- c("lower", "upper", "mean")
     res
   }) |>
-  mutate(est_name = paste0(est_name, " - ", y_name)) |> 
+  #mutate(est_name = paste0(est_name, " - ", y_name)) |> 
   ggplot(aes(y = est_name, x = mean)) +
   geom_point(col = "blue", size = 5) +
   geom_errorbar(aes(xmin = lower, xmax = upper)) +
   geom_vline(aes(xintercept = .95), color = "red", linetype = "dashed") +
+  facet_wrap(~ y_name, ncol = 2, scales = "free_x") +
   theme_bw() +
   xlab("Coverage") +
   ylab("Estimator and design")
