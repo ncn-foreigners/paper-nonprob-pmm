@@ -218,14 +218,14 @@ ddf <- c(
   res[,  8] - mean(population$y2),
   res[,  9] - mean(population$y1),
   res[, 10] - mean(population$y2)
-) |> as.tibble()
+) |> as_tibble()
 
 colnames(ddf) <- "diff"
 
 ddf[,"y_name"] <- rep(rep(c("y1", "y2"), each = 500), 5)
 ddf[,"est_name"] <- rep(rep(c("yhat-y", "yhat-yhat", "glm", 
                               "yhat-y-robust", "yhat-yhat-robust"), 
-                            each = 500), 2)
+                            each = 1000))
 
 pp <- ggplot(data = ddf, aes(x = est_name, y = diff)) + 
   geom_violin(alpha = 0.8, draw_quantiles = 1:9 / 10, scale = "width") +
