@@ -13,34 +13,46 @@ sims <- 5 * 100
 N <- 1e6
 n <- 200
 KK <- 3
+x3_break_num <- 20
 
 sigma <- diag(1, nrow = 5)
 sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = .5, min = -.5)
 sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
 x1 <- MASS::mvrnorm(n = N / 5, mu = rep(1, 5), Sigma = sigma) |> as.vector()
 x2 <- rexp(n = N, rate = 1)
+x3 <- rnbinom(n = N, mu = 40, size = 30)
+x3 <- cut(x3, breaks = quantile(x3, seq(0, 1, length.out = x3_break_num + 1)), include.lowest = TRUE)
 sigma <- diag(2, nrow = 5)
 sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = 1, min = -.7)
 sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
 epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector()
 
-p1 <- exp(x2 - x1 - 2)/(1 + exp(x2 - x1 - 2))
+x3_effect <- runif(n = x3_break_num, min = -6, max = 10)
+
+p1 <- exp(x2 - x1 - 2) / (1 + exp(x2 - x1 - 2))
 p2 <- exp(x1 * .6 - x2 - 2) / (1 + exp(x1 * .6 - x2 - 2))
+x3_dat <- model.matrix(~ x3 - 1, data.frame(x3 = x3), 
+                       contrasts.arg = list("x3" = contrasts(x3, FALSE)))
+
 population <- data.frame(
   x1,
   x2,
-  y1 = 6 * x1 - 5 * x2 - 7 + 10 * epsilon,
-  y2 = -2 + .37 * (x1 - 0.5) ^ 2 + x2 + epsilon,
+  x3,
+  y1 = 6 * x1 - 5 * x2 - 7 + x3_dat %*% x3_effect + 15 * epsilon,
+  y2 = -2 + .37 * (x1 - 0.5) ^ 2 + x2 ^ 2 + x3_dat %*% x3_effect + 5 * epsilon,
   p1 = p1,
   base_w_srs = N/n
 )
 
-xx <- rbinom(prob = plogis(.5 * cos(x2) - .5 * sin(x1)), 
+# inclusion probabilities
+
+xx <- rbinom(prob = x3_dat %*% seq(from = .75, to = .1, 
+                                   length.out = x3_break_num), 
              size = 1, n = N) |> 
   as.logical()
 
-# expected size about 500_000
-population1 <- population[xx,]
+# expected size about 435_000
+population1 <- population[xx, ]
 
 cl <- makeCluster(cores)
 clusterExport(cl, c("N", "n"))
@@ -55,7 +67,7 @@ opts <- list(progress = \(n) pb$tick())
 res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy"),
                .options.snow = opts) %dopar% {
-  flag_bd1 <- pmin( # planned size ~~ 4500
+  flag_bd1 <- pmin( # planned size ~~ .9% of size samplable population (population1)
     rbinom(n = 1:NROW(population1), size = 1, prob = p1[xx]),
     rbinom(n = 1:NROW(population1), size = 1, prob = p2[xx])
   )
@@ -64,7 +76,7 @@ res <- foreach(k=1:sims, .combine = rbind,
                            data = population[sample(1:N, n),])
 
   glm1 <- nonprob(
-    outcome = y1 ~ x1 + x2,
+    outcome = y1 ~ x1 + x2 + x3,
     data = population1[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "glm",
@@ -73,7 +85,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   )
   
   pmm1 <- nonprob(
-    outcome = y1 ~ x1 + x2,
+    outcome = y1 ~ x1 + x2 + x3,
     data = population1[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
@@ -84,7 +96,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   )
 
   pmm1.1 <- nonprob(
-    outcome = y1 ~ x1 + x2,
+    outcome = y1 ~ x1 + x2 + x3,
     data = population1[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
@@ -95,7 +107,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   )
   
   glm2 <- nonprob(
-    outcome = y2 ~ x1 + x2,
+    outcome = y2 ~ x1 + x2 + x3,
     data = population1[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "glm",
@@ -104,7 +116,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   )
 
   pmm2 <- nonprob(
-    outcome = y2 ~ x1 + x2,
+    outcome = y2 ~ x1 + x2 + x3,
     data = population1[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
@@ -115,7 +127,7 @@ res <- foreach(k=1:sims, .combine = rbind,
   )
 
   pmm2.1 <- nonprob(
-    outcome = y2 ~ x1 + x2,
+    outcome = y2 ~ x1 + x2 + x3,
     data = population1[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
