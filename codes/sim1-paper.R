@@ -512,7 +512,25 @@ results_simulation1_process[type == "ci", type:="srs"]
 results_simulation1_process[sample == "500b", sample := 500]
 results_simulation1_process[sample == "1000b", sample := 1000]
 
-## ci
+saveRDS(results_simulation1, file = "results/sim1-paper-results.RDS")
+
+# processing results without V2 -------------------------------------------
+
+setDT(results_simulation1_no_v2)
+
+results_simulation1_no_v2_process <- results_simulation1_no_v2 |> melt(id.vars = 1:3)
+results_simulation1_no_v2_process[, c("est", "sample", "type", "ci"):=tstrsplit(variable, "_")]
+results_simulation1_no_v2_process[type == "ci", ci :="ci"]
+results_simulation1_no_v2_process[type == "ci", type:="srs"]
+
+saveRDS(results_simulation1_no_v2_process, file = "results/sim1-paper-results-no-v2.RDS")
+
+
+# reporting in paper ------------------------------------------------------
+
+
+## table 1 data ------------------------------------------------------------
+
 
 tab1_ci <- results_simulation1_process[!is.na(ci) & is.na(ci_boot), .(ci=mean(value)), 
                                     .(type, est, sample, y)] |>
@@ -523,14 +541,6 @@ tab1_ci <- results_simulation1_process[!is.na(ci) & is.na(ci_boot), .(ci=mean(va
             sample=as.character(as.numeric(sample)/100)) |>
   dcast(... ~ y, value.var = "value") 
 
-tab1_ci_b <- results_simulation1_process[!is.na(ci) & !is.na(ci_boot), .(ci=mean(value)), 
-                                       .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(y=paste(y, variable, sep = "_")) |>
-  transform(variable=NULL,
-            value = value*100,
-            sample=as.character(as.numeric(sample)/100)) |>
-  dcast(... ~ y, value.var = "value") 
 
 ## stats
 tab1 <- results_simulation1_process[is.na(ci), .(bias=mean(value)-mean(trues), se = sd(value), 
@@ -559,27 +569,13 @@ setcolorder(tab1, c("type", "sample", "est",
                     "y2_bias", "y2_se", "y2_rmse", "y2_ci",
                     "y3_bias", "y3_se", "y3_rmse", "y3_ci"))
 
-## report table1
+
 tab1[order(sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
   xtable() |>
   print.xtable(include.rownames = F)
 
 
-## ci coverage
-saveRDS(results_simulation1, file = "results/sim1-paper-results.RDS")
-
-
-# processing results without V2 -------------------------------------------
-
-setDT(results_simulation1_no_v2)
-
-results_simulation1_no_v2_process <- results_simulation1_no_v2 |> melt(id.vars = 1:3)
-results_simulation1_no_v2_process[, c("est", "sample", "type", "ci"):=tstrsplit(variable, "_")]
-results_simulation1_no_v2_process[type == "ci", ci :="ci"]
-results_simulation1_no_v2_process[type == "ci", type:="srs"]
-
-## ci
-
+## table 2 data ------------------------------------------------------------
 
 tab1_ci_no_v2 <- results_simulation1_no_v2_process[!is.na(ci), .(ci=mean(value)), 
                                        .(type, est, sample, y)] |>
@@ -595,9 +591,32 @@ tab1_ci_no_v2 <- results_simulation1_no_v2_process[!is.na(ci), .(ci=mean(value))
 
 setcolorder(tab1_ci_no_v2, c("type", "est", "sample",  "y1_no_v2ci", "y1_ci", "y2_no_v2ci", "y2_ci", "y3_no_v2ci", "y3_ci"))
 
+
 tab1_ci_no_v2[order(-sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
   xtable() |>
   print.xtable(include.rownames = F)
 
 
-saveRDS(results_simulation1_no_v2_process, file = "results/sim1-paper-results-no-v2.RDS")
+## table 3 data ------------------------------------------------------------
+
+
+tab1_ci_b <- results_simulation1_process[!is.na(ci) & !is.na(ci_boot), .(ci=mean(value)), 
+                                         .(type, est, sample, y)] |>
+  melt(id.vars = c(1, 4,2,3)) |>
+  transform(y=paste(y, variable, "b", sep = "_")) |>
+  transform(variable=NULL,
+            value = value*100,
+            sample=as.character(as.numeric(sample)/100)) |>
+  dcast(... ~ y, value.var = "value") 
+
+tab3 <- tab1_ci_no_v2[, .(type, est, sample, y1_ci, y2_ci, y3_ci)]
+tab3 <- tab3[tab1_ci_b, on = c("type", "est", "sample"), ":="(y1_ci_b=y1_ci_b,y2_ci_b=y2_ci_b,y3_ci_b=y3_ci_b)]
+
+setcolorder(tab3, c("type", "est", "sample",  "y1_ci", "y1_ci_b", "y2_ci", "y2_ci_b", "y3_ci", "y3_ci_b"))
+
+
+
+tab3[order(-sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
+  xtable() |>
+  print.xtable(include.rownames = F)
+
