@@ -505,13 +505,26 @@ setDT(results_simulation1)
 
 results_simulation1_process <- results_simulation1 |> melt(id.vars = 1:3)
 results_simulation1_process[, c("est", "sample", "type", "ci"):=tstrsplit(variable, "_")]
+results_simulation1_process[sample %in% c("500b","1000b"), ci := "ci"]
+results_simulation1_process[sample %in% c("500b","1000b"), ci_boot := TRUE]
 results_simulation1_process[type == "ci", ci :="ci"]
 results_simulation1_process[type == "ci", type:="srs"]
+results_simulation1_process[sample == "500b", sample := 500]
+results_simulation1_process[sample == "1000b", sample := 1000]
 
 ## ci
 
-tab1_ci <- results_simulation1_process[!is.na(ci), .(ci=mean(value)), 
+tab1_ci <- results_simulation1_process[!is.na(ci) & is.na(ci_boot), .(ci=mean(value)), 
                                     .(type, est, sample, y)] |>
+  melt(id.vars = c(1, 4,2,3)) |>
+  transform(y=paste(y, variable, sep = "_")) |>
+  transform(variable=NULL,
+            value = value*100,
+            sample=as.character(as.numeric(sample)/100)) |>
+  dcast(... ~ y, value.var = "value") 
+
+tab1_ci_b <- results_simulation1_process[!is.na(ci) & !is.na(ci_boot), .(ci=mean(value)), 
+                                       .(type, est, sample, y)] |>
   melt(id.vars = c(1, 4,2,3)) |>
   transform(y=paste(y, variable, sep = "_")) |>
   transform(variable=NULL,
