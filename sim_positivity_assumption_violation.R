@@ -7,7 +7,7 @@ library(tidyverse)
 
 set.seed(2051)
 
-cores <- 5
+cores <- 8
 
 sims <- 5 * 100
 N <- 1e6
@@ -78,12 +78,12 @@ res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy"),
                .options.snow = opts) %dopar% {
   # planned size ~~ .9% of size "samplable" population (population1)
-  flag_bd1 <- pmin(
+  flag_bd1 <- pmax(
     rbinom(n = 1:NROW(population1), size = 1, prob = p1[xx1]),
     rbinom(n = 1:NROW(population1), size = 1, prob = p2[xx1])
   )
   # planned size ~~ .8% of size "samplable" population (population2)
-  flag_bd2 <- pmin(
+  flag_bd2 <- pmax(
     rbinom(n = 1:NROW(population2), size = 1, prob = p1[xx2]),
     rbinom(n = 1:NROW(population2), size = 1, prob = p2[xx2])
   )
@@ -480,3 +480,69 @@ pp2 <- df |>
 
 ggsave("results/custom-pmm-500-sims-check-positivity-plot-errors.png", pp)
 ggsave("results/custom-pmm-500-sims-check-positivity-plot-coverage.png", pp2)
+
+res <- readRDS("results/custom-pmm-500-sims-check-positivity-really-large-sample.rds")
+
+df <- rbind(
+  as.matrix(res[,c(c(1, 7, 27) +  0, 13)]),
+  as.matrix(res[,c(c(1, 7, 27) +  1, 13)]),
+  as.matrix(res[,c(c(1, 7, 27) +  2, 13)]),
+  as.matrix(res[,c(c(1, 7, 27) +  3, 13)]),
+  as.matrix(res[,c(c(1, 7, 27) +  4, 13)]),
+  as.matrix(res[,c(c(1, 7, 27) +  5, 13)]),
+  # ---------------------------------------------
+  as.matrix(res[,c(c(14, 20, 33) +  0, 26)]),
+  as.matrix(res[,c(c(14, 20, 33) +  1, 26)]),
+  as.matrix(res[,c(c(14, 20, 33) +  2, 26)]),
+  as.matrix(res[,c(c(14, 20, 33) +  3, 26)]),
+  as.matrix(res[,c(c(14, 20, 33) +  4, 26)]),
+  as.matrix(res[,c(c(14, 20, 33) +  5, 26)])
+) |>
+  as_tibble()
+
+colnames(df) <- c("est", "coverage", "se", "true")
+
+df[,"y_name"] <- paste0(rep(c("Stochastic undercoverage linear dependence", 
+                              "Stochastic undercoverage non-linear dependence",
+                              "Deterministic undercoverage linear dependence", 
+                              "Deterministic undercoverage non-linear dependence"), 
+                            each = NROW(df) / 4))
+df[,"est_name"] <- rep(rep(c("yhat-y", "yhat-yhat", "glm"), each = 500), 4)
+
+df <- df |>
+  mutate(diff = est - true)
+
+pp <- ggplot(data = df, aes(x = est_name, y = diff)) + 
+  geom_violin(alpha = 0.8, draw_quantiles = 1:9 / 10, scale = "width") +
+  stat_summary(fun = function(x) mean(x, na.rm = TRUE), geom = "point") +
+  geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed") +
+  facet_wrap(~ y_name, ncol = 2, scales = "free_y") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 20, vjust = 1, hjust = 1)) +
+  xlab("Estimator name") +
+  ylab("Estimate error")
+
+pp2 <- df |> 
+  group_by(y_name, est_name) |>
+  group_modify(.f = function(x, y) {
+    xx <- binom.test(c(sum(x$coverage), sum(1 - x$coverage)), p = .95, n = sims)
+    res <- data.frame(
+      xx$conf.int[1],
+      xx$conf.int[2],
+      xx$estimate
+    )
+    colnames(res) <- c("lower", "upper", "mean")
+    res
+  }) |>
+  #mutate(est_name = paste0(est_name, " - ", y_name)) |> 
+  ggplot(aes(y = est_name, x = mean)) +
+  geom_point(col = "blue", size = 5) +
+  geom_errorbar(aes(xmin = lower, xmax = upper)) +
+  geom_vline(aes(xintercept = .95), color = "red", linetype = "dashed") +
+  facet_wrap(~ y_name, ncol = 2, scales = "free_x") +
+  theme_bw() +
+  xlab("Coverage") +
+  ylab("Estimator and design")
+
+ggsave("results/custom-pmm-500-sims-check-positivity-really-large-sample-plot-errors.png", pp)
+ggsave("results/custom-pmm-500-sims-check-positivity-really-large-sample-plot-coverage.png", pp2)
