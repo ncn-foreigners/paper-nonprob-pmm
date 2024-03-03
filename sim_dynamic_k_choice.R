@@ -421,7 +421,7 @@ df <- data.frame(
 
 saveRDS(res, file = "results/custom-pmm-500-k-choice-sims.rds")
 res <- readRDS("results/custom-pmm-500-k-choice-sims.rds")
-
+KK2 <- 4
 
 df <- rbind(
   as.matrix(res[,c(c(1, 6, 23) +  0, 11)]), # y1 linear - yhat - yhat match
@@ -480,6 +480,25 @@ pp2 <- df |>
   theme_bw() +
   xlab("Coverage") +
   ylab("Estimator and design")
+
+df |>
+  group_by(y_name, est_name) |>
+  group_modify(.f = function(x, y) {
+    xx <- binom.test(c(sum(x$coverage), sum(1 - x$coverage)), p = .95, n = 500)
+    res <- data.frame(
+      xx$conf.int[1],
+      xx$conf.int[2],
+      xx$estimate,
+      mean(x$diff),
+      mean((x$diff) ^ 2),
+      mean(abs(x$diff)),
+      sd(x$est)
+    )
+    res <- round(res, digits = 3)
+    colnames(res) <- c("lower", "upper", "mean", "bias", "mse", "mae", "sd")
+    res
+  }) |>
+  kableExtra::kable(format = "latex")
 
 ggsave("results/custom-pmm-500-k-choice-sims-plot-errors.png", pp)
 ggsave("results/custom-pmm-500-k-choice-sims-plot-coverage.png", pp2)

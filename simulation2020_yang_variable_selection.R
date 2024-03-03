@@ -537,5 +537,25 @@ pp2 <- df |>
   xlab("Coverage") +
   ylab("Estimator")
 
+df |> 
+  mutate(covr = lower < true & true < upper) |>
+  group_by(y_name, est_name) |>
+  group_modify(.f = function(x, y) {
+    xx <- binom.test(c(sum(x$covr), sum(1 - x$covr)), p = .95, n = 500)
+    res <- data.frame(
+      xx$conf.int[1],
+      xx$conf.int[2],
+      xx$estimate,
+      mean(x$est-x$true),
+      mean((x$est-x$true) ^ 2),
+      mean(abs(x$est-x$true)),
+      sd(x$est)
+    )
+    res <- round(res, digits = 3)
+    colnames(res) <- c("lower", "upper", "mean", "bias", "mse", "mae", "sd")
+    res
+  }) |>
+  kableExtra::kable(format = "latex")
+
 ggsave("results/yang2020-pmm-500-sims-plot-errors.png", pp)
 ggsave("results/yang2020-pmm-500-sims-plot-coverage.png", pp2)
