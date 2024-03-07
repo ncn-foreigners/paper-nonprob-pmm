@@ -398,7 +398,7 @@ df <- data.frame(
 )
 
 saveRDS(res, file = "results/custom-pmm-with-nonparametric-regression-500-sims.rds")
-
+res <- readRDS("~/Desktop/nonprobsvy-predictive-mean-matching/results/custom-pmm-with-nonparametric-regression-500-sims.rds")
 
 df <- rbind(
   as.matrix(res[,c(c(1, 6, 34) +  0, 11)]), # y1 linear - yhat - yhat match
@@ -484,6 +484,25 @@ pp3 <- df |>
   theme_bw() +
   xlab("Coverage") +
   ylab("Estimator and design")
+
+df |> 
+  group_by(y_name, est_name) |>
+  group_modify(.f = function(x, y) {
+    xx <- binom.test(c(sum(x$coverage), sum(1 - x$coverage)), p = .95, n = sims)
+    res <- data.frame(
+      xx$conf.int[1],
+      xx$conf.int[2],
+      xx$estimate,
+      mean(x$est-x$true),
+      mean((x$est-x$true) ^ 2),
+      mean(abs(x$est-x$true)),
+      sd(x$est)
+    )
+    res <- round(res, digits = 3)
+    colnames(res) <- c("lower", "upper", "mean", "bias", "mse", "mae", "sd")
+    res
+  }) |>
+  kableExtra::kable(format = "latex")
 
 ggsave("results/custom-pmm-with-nonparametric-regression-500-sims-plot-errors.png", pp)
 ggsave("results/custom-pmm-with-nonparametric-regression-500-sims-plot-coverage.png", pp2)
