@@ -93,14 +93,19 @@ res <- foreach(k=1:sims, .combine = rbind,
     mm1 <- lm(cbind(y1, y2) ~ x1 + x2, 
               population[flag_bd1 == 1, , drop = FALSE])
     
+    mm2 <- lm(cbind(y1, y2) ~ I(x1^5) + I(x2^2), 
+              population[flag_bd1 == 1, , drop = FALSE])
 
     ddf <- cbind(population[flag_bd1 == 1, , drop = FALSE],
-                 "preds" = predict(mm1))
+                 "preds_lin" = predict(mm1),
+                 "preds_nlin" = predict(mm2))
     
-    sample_prob$variables <- cbind(sample_prob$variables, "preds" = predict(mm1, sample_prob$variables))
+    sample_prob$variables <- cbind(sample_prob$variables, 
+                                   "preds_lin" = predict(mm1, sample_prob$variables),
+                                   "preds_nlin" = predict(mm2, sample_prob$variables))
     
-    pmm1_mv <- nonprob(
-      outcome = y1 + y2 ~ preds.y1 + preds.y2 - 1,
+    pmm1_y1_mv <- nonprob(
+      outcome = y1 ~ preds_lin.y1 + preds_nlin.y1 - 1,
       data = ddf,
       svydesign = sample_prob,
       method_outcome = "pmm",
@@ -112,8 +117,34 @@ res <- foreach(k=1:sims, .combine = rbind,
       )
     )
     
-    pmm2_mv <- nonprob(
-      outcome = y1 + y2 ~ preds.y1 + preds.y2 - 1,
+    pmm1_y2_mv <- nonprob(
+      outcome = y2 ~ preds_lin.y2 + preds_nlin.y2 - 1,
+      data = ddf,
+      svydesign = sample_prob,
+      method_outcome = "pmm",
+      pop_size = N,
+      family_outcome = "gaussian",
+      control_outcome = controlOut(k = KK, predictive_match = 1),
+      control_inference = controlInf(
+        pmm_exact_se = TRUE
+      )
+    )
+    
+    pmm2_y1_mv <- nonprob(
+      outcome = y1 ~ preds_lin.y1 + preds_nlin.y1 - 1,
+      data = ddf,
+      svydesign = sample_prob,
+      method_outcome = "pmm",
+      pop_size = N,
+      family_outcome = "gaussian",
+      control_outcome = controlOut(k = KK, predictive_match = 2),
+      control_inference = controlInf(
+        pmm_exact_se = TRUE
+      )
+    )
+    
+    pmm2_y2_mv <- nonprob(
+      outcome = y2 ~ preds_lin.y2 + preds_nlin.y2 - 1,
       data = ddf,
       svydesign = sample_prob,
       method_outcome = "pmm",
@@ -129,14 +160,16 @@ res <- foreach(k=1:sims, .combine = rbind,
       pmm1$output$mean |> as.vector() |> t(),
       pmm2$output$mean |> as.vector() |> t(),
       glm1$output$mean |> as.vector() |> t(),
-      pmm1_mv$output$mean |> as.vector() |> t(),
-      pmm2_mv$output$mean |> as.vector() |> t()
+      pmm1_y1_mv$output$mean,
+      pmm1_y2_mv$output$mean,
+      pmm2_y1_mv$output$mean,
+      pmm2_y2_mv$output$mean
     )
 }
 stopCluster(cl)
 
 saveRDS(res, "results/custom-pmm-500-sims-robust.rds")
-#res <- readRDS("~/Desktop/nonprobsvy-predictive-mean-matching/results/custom-pmm-500-sims-robust.rds")
+res <- readRDS("~/Desktop/nonprobsvy-predictive-mean-matching/results/custom-pmm-500-sims-robust.rds")
 
 df <- data.frame(
   bias = c(
