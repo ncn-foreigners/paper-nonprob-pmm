@@ -90,62 +90,53 @@ res <- foreach(k=1:sims, .combine = rbind,
       )
     )
     
-    mm1 <- lm(cbind(y1, y2) + y2 ~ x1 + x2, 
+    mm1 <- lm(cbind(y1, y2) ~ x1 + x2, 
               population[flag_bd1 == 1, , drop = FALSE])
     
-    predict(mm1)
-    predict(mm1, newdata = sample_prob$variables)
-    
+
     ddf <- cbind(population[flag_bd1 == 1, , drop = FALSE],
                  "preds" = predict(mm1))
     
-    mm2 <- lm(cbind(y1, y2) ~ preds.y1 + preds.y2 - 1,
-              data = ddf)
+    sample_prob$variables <- cbind(sample_prob$variables, "preds" = predict(mm1, sample_prob$variables))
     
-    yhat_nons <- predict(mm2)
-    
-    yhat_rand <- predict(
-      mm2, 
-      newdata = cbind(
-        "preds" = predict(mm1, newdata = sample_prob$variables) |> 
-          as.data.frame()
+    pmm1_mv <- nonprob(
+      outcome = y1 + y2 ~ preds.y1 + preds.y2 - 1,
+      data = ddf,
+      svydesign = sample_prob,
+      method_outcome = "pmm",
+      pop_size = N,
+      family_outcome = "gaussian",
+      control_outcome = controlOut(k = KK, predictive_match = 1),
+      control_inference = controlInf(
+        pmm_exact_se = TRUE
       )
     )
     
-    
-    nn1 <- dbscan::kNN(x = cbind(population[flag_bd1 == 1, c("y1", "y2"), drop = FALSE]), 
-                       k = KK,
-                       query = cbind(yhat_rand))
-    
-    nn2 <- dbscan::kNN(x = cbind(yhat_nons), 
-                       k = KK,
-                       query = cbind(yhat_rand))
-    
-    
-    y_nu1 <- apply(nn1$id, MARGIN = 1,
-                   FUN = function(x) colMeans(population[flag_bd1 == 1, c("y1", "y2")][x, ]))
-    
-    y_nu2 <- apply(nn2$id, MARGIN = 1,
-                   FUN = function(x) colMeans(population[flag_bd1 == 1, c("y1", "y2")][x, ]))
-    
-    mu_hat_1 <- cbind(weighted.mean(y_nu1[1, ], 1 / sample_prob$allprob[,1]),
-                      weighted.mean(y_nu1[2, ], 1 / sample_prob$allprob[,1]))
-    
-    mu_hat_2 <- cbind(weighted.mean(y_nu2[1, ], 1 / sample_prob$allprob[,1]),
-                      weighted.mean(y_nu2[2, ], 1 / sample_prob$allprob[,1]))
+    pmm2_mv <- nonprob(
+      outcome = y1 + y2 ~ preds.y1 + preds.y2 - 1,
+      data = ddf,
+      svydesign = sample_prob,
+      method_outcome = "pmm",
+      pop_size = N,
+      family_outcome = "gaussian",
+      control_outcome = controlOut(k = KK, predictive_match = 2),
+      control_inference = controlInf(
+        pmm_exact_se = TRUE
+      )
+    )
     
     cbind(
       pmm1$output$mean |> as.vector() |> t(),
       pmm2$output$mean |> as.vector() |> t(),
       glm1$output$mean |> as.vector() |> t(),
-      mu_hat_1 |> as.vector() |> t(), 
-      mu_hat_2 |> as.vector() |> t()
+      pmm1_mv$output$mean |> as.vector() |> t(),
+      pmm2_mv$output$mean |> as.vector() |> t()
     )
 }
 stopCluster(cl)
 
 saveRDS(res, "results/custom-pmm-500-sims-robust.rds")
-res <- readRDS("~/Desktop/nonprobsvy-predictive-mean-matching/results/custom-pmm-500-sims-robust.rds")
+#res <- readRDS("~/Desktop/nonprobsvy-predictive-mean-matching/results/custom-pmm-500-sims-robust.rds")
 
 df <- data.frame(
   bias = c(
