@@ -398,7 +398,7 @@ df <- data.frame(
 )
 
 saveRDS(res, file = "results/custom-pmm-with-nonparametric-regression-500-sims.rds")
-res <- readRDS("~/Desktop/nonprobsvy-predictive-mean-matching/results/custom-pmm-with-nonparametric-regression-500-sims.rds")
+res <- readRDS("results/custom-pmm-with-nonparametric-regression-500-sims.rds")
 
 df <- rbind(
   as.matrix(res[,c(c(1, 6, 34) +  0, 11)]), # y1 linear - yhat - yhat match

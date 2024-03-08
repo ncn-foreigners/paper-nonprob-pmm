@@ -341,8 +341,8 @@ df <- data.frame(
   )
 )
 
-saveRDS(res, file = "paper-nonprob-pmm/results/custom-pmm-500-sims-check-bootstrap-variance-large-nonprob.rds")
-res <- readRDS("paper-nonprob-pmm/results/custom-pmm-500-sims-check-bootstrap-variance-large-nonprob.rds")
+saveRDS(res, file = "results/custom-pmm-500-sims-check-bootstrap-variance-large-nonprob.rds")
+res <- readRDS("results/custom-pmm-500-sims-check-bootstrap-variance-large-nonprob.rds")
 
 df <- rbind(
   as.matrix(res[,c(c(1, 6, 23) +  0, 11)]), # y1 linear - yhat - yhat match
@@ -400,5 +400,5 @@ pp2 <- df |>
   xlab("Coverage") +
   ylab("Estimator and design")
 
-ggsave("paper-nonprob-pmm/results/custom-pmm-500-sims-check-bootstrap-variance-large-nonprob-plot-errors.png", pp)
-ggsave("paper-nonprob-pmm/results/custom-pmm-500-sims-check-bootstrap-variance-large-nonprob-plot-coverage.png", pp2)
+ggsave("results/custom-pmm-500-sims-check-bootstrap-variance-large-nonprob-plot-errors.png", pp)
+ggsave("results/custom-pmm-500-sims-check-bootstrap-variance-large-nonprob-plot-coverage.png", pp2)

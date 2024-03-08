@@ -169,7 +169,7 @@ res <- foreach(k=1:sims, .combine = rbind,
 stopCluster(cl)
 
 saveRDS(res, "results/custom-pmm-500-sims-robust.rds")
-res <- readRDS("~/Desktop/nonprobsvy-predictive-mean-matching/results/custom-pmm-500-sims-robust.rds")
+res <- readRDS("results/custom-pmm-500-sims-robust.rds")
 
 df <- data.frame(
   bias = c(

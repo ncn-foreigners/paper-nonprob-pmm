@@ -47,163 +47,163 @@ opts <- list(progress = \(n) pb$tick())
 res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy"),
                .options.snow = opts) %dopar% {
-                 # flag_bd1 <- c(rbinom(n = 1:N, size = 1, prob = p1))
-                 #flag_bd1 <- c(rbinom(n = 1:(N - 10000), size = 1, prob = p1), rep(0, 10000))
-                 # flag_bd1 <- pmin(rbinom(n = 1:N, size = 1, prob = p1),
-                 #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
-                 flag_bd1 <- pmin( # planned size ~~ 9K
-                   rbinom(n = 1:N, size = 1, prob = p1),
-                   rbinom(n = 1:N, size = 1, prob = p2)
-                 )
-                 base_w_bd <- N/n
-                 sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
-                                          data = population[sample(1:N, n),])
-
-                 glm1 <- nonprob(
-                   outcome = y1 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "glm",
-                   pop_size = N,
-                   family_outcome = "gaussian"
-                 )
-
-                 pmm1 <- nonprob(
-                   outcome = y1 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 1),
-                   control_inference = controlInf(var_method = "bootstrap")
-                 )
-
-                 pmm1.1 <- nonprob(
-                   outcome = y1 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 2),
-                   control_inference = controlInf(var_method = "bootstrap")
-                 )
-
-                 pmm1.2 <- nonprob(
-                   outcome = y1 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 1),
-                   control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"),
-                 )
-
-                 pmm1.3 <- nonprob(
-                   outcome = y1 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 2),
-                   control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap")
-                 )
-
-                 glm2 <- nonprob(
-                   outcome = y2 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "glm",
-                   pop_size = N,
-                   family_outcome = "gaussian"
-                 )
-
-                 pmm2 <- nonprob(
-                   outcome = y2 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 1),
-                   control_inference = controlInf(var_method = "bootstrap")
-                 )
-
-                 pmm2.1 <- nonprob(
-                   outcome = y2 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 2),
-                   control_inference = controlInf(var_method = "bootstrap")
-                 )
-
-                 pmm2.2 <- nonprob(
-                   outcome = y2 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 1),
-                   control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap")
-                 )
-
-                 pmm2.3 <- nonprob(
-                   outcome = y2 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 2),
-                   control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap")
-                 )
-
-                 # we need some extractors for this
-                 # quite unsightly that call
-
-                 cbind(
-                   pmm1$output$mean, pmm1.1$output$mean,
-                   pmm1.2$output$mean, pmm1.3$output$mean,
-                   glm1$output$mean,
-                   pmm1$confidence_interval[, 1] < mean(population$y1) &
-                     mean(population$y1) < pmm1$confidence_interval[, 2],
-                   pmm1.1$confidence_interval[, 1] < mean(population$y1) &
-                     mean(population$y1) < pmm1.1$confidence_interval[, 2],
-                   pmm1.2$confidence_interval[, 1] < mean(population$y1) &
-                     mean(population$y1) < pmm1.2$confidence_interval[, 2],
-                   pmm1.3$confidence_interval[, 1] < mean(population$y1) &
-                     mean(population$y1) < pmm1.3$confidence_interval[, 2],
-                   glm1$confidence_interval[, 1] < mean(population$y1) &
-                     mean(population$y1) < glm1$confidence_interval[, 2],
-                   mean(population$y1),
-                   pmm2$output$mean, pmm2.1$output$mean,
-                   pmm2.2$output$mean, pmm2.3$output$mean,
-                   glm2$output$mean,
-                   pmm2$confidence_interval[, 1] < mean(population$y2) &
-                     mean(population$y2) < pmm2$confidence_interval[, 2],
-                   pmm2.1$confidence_interval[, 1] < mean(population$y2) &
-                     mean(population$y2) < pmm2.1$confidence_interval[, 2],
-                   pmm2.2$confidence_interval[, 1] < mean(population$y2) &
-                     mean(population$y2) < pmm2.2$confidence_interval[, 2],
-                   pmm2.3$confidence_interval[, 1] < mean(population$y2) &
-                     mean(population$y2) < pmm2.3$confidence_interval[, 2],
-                   glm2$confidence_interval[, 1] < mean(population$y2) &
-                     mean(population$y2) < glm2$confidence_interval[, 2],
-                   mean(population$y2),
-                   pmm1$output$SE, pmm1.1$output$SE,
-                   pmm1.2$output$SE, pmm1.3$output$SE,
-                   glm1$output$SE, pmm2$output$SE,
-                   pmm2.1$output$SE, pmm2.2$output$SE,
-                   pmm2.3$output$SE, glm2$output$SE
-                 )
-               }
+  # flag_bd1 <- c(rbinom(n = 1:N, size = 1, prob = p1))
+  #flag_bd1 <- c(rbinom(n = 1:(N - 10000), size = 1, prob = p1), rep(0, 10000))
+  # flag_bd1 <- pmin(rbinom(n = 1:N, size = 1, prob = p1),
+  #                  1 - rbinom(n = 1:N, size = 1, prob = p2))
+  flag_bd1 <- pmin( # planned size ~~ 9K
+    rbinom(n = 1:N, size = 1, prob = p1),
+    rbinom(n = 1:N, size = 1, prob = p2)
+  )
+  base_w_bd <- N/n
+  sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
+                           data = population[sample(1:N, n),])
+  
+  glm1 <- nonprob(
+    outcome = y1 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "glm",
+    pop_size = N,
+    family_outcome = "gaussian"
+  )
+  
+  pmm1 <- nonprob(
+    outcome = y1 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(var_method = "bootstrap")
+  )
+  
+  pmm1.1 <- nonprob(
+    outcome = y1 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(var_method = "bootstrap")
+  )
+  
+  pmm1.2 <- nonprob(
+    outcome = y1 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"),
+  )
+  
+  pmm1.3 <- nonprob(
+    outcome = y1 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap")
+  )
+  
+  glm2 <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "glm",
+    pop_size = N,
+    family_outcome = "gaussian"
+  )
+  
+  pmm2 <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(var_method = "bootstrap")
+  )
+  
+  pmm2.1 <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(var_method = "bootstrap")
+  )
+  
+  pmm2.2 <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap")
+  )
+  
+  pmm2.3 <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap")
+  )
+  
+  # we need some extractors for this
+  # quite unsightly that call
+  
+  cbind(
+    pmm1$output$mean, pmm1.1$output$mean,
+    pmm1.2$output$mean, pmm1.3$output$mean,
+    glm1$output$mean,
+    pmm1$confidence_interval[, 1] < mean(population$y1) &
+      mean(population$y1) < pmm1$confidence_interval[, 2],
+    pmm1.1$confidence_interval[, 1] < mean(population$y1) &
+      mean(population$y1) < pmm1.1$confidence_interval[, 2],
+    pmm1.2$confidence_interval[, 1] < mean(population$y1) &
+      mean(population$y1) < pmm1.2$confidence_interval[, 2],
+    pmm1.3$confidence_interval[, 1] < mean(population$y1) &
+      mean(population$y1) < pmm1.3$confidence_interval[, 2],
+    glm1$confidence_interval[, 1] < mean(population$y1) &
+      mean(population$y1) < glm1$confidence_interval[, 2],
+    mean(population$y1),
+    pmm2$output$mean, pmm2.1$output$mean,
+    pmm2.2$output$mean, pmm2.3$output$mean,
+    glm2$output$mean,
+    pmm2$confidence_interval[, 1] < mean(population$y2) &
+      mean(population$y2) < pmm2$confidence_interval[, 2],
+    pmm2.1$confidence_interval[, 1] < mean(population$y2) &
+      mean(population$y2) < pmm2.1$confidence_interval[, 2],
+    pmm2.2$confidence_interval[, 1] < mean(population$y2) &
+      mean(population$y2) < pmm2.2$confidence_interval[, 2],
+    pmm2.3$confidence_interval[, 1] < mean(population$y2) &
+      mean(population$y2) < pmm2.3$confidence_interval[, 2],
+    glm2$confidence_interval[, 1] < mean(population$y2) &
+      mean(population$y2) < glm2$confidence_interval[, 2],
+    mean(population$y2),
+    pmm1$output$SE, pmm1.1$output$SE,
+    pmm1.2$output$SE, pmm1.3$output$SE,
+    glm1$output$SE, pmm2$output$SE,
+    pmm2.1$output$SE, pmm2.2$output$SE,
+    pmm2.3$output$SE, glm2$output$SE
+  )
+}
 
 stopCluster(cl)
 colnames(res) <- c(
@@ -342,8 +342,8 @@ df <- data.frame(
 
 ###################
 
-saveRDS(res, file = "paper-nonprob-pmm/results/custom-pmm-500-sims-check-bootstrap2-variance.rds")
-res <- readRDS("paper-nonprob-pmm/results/custom-pmm-500-sims-check-bootstrap2-variance.rds")
+saveRDS(res, file = "results/custom-pmm-500-sims-check-bootstrap2-variance.rds")
+res <- readRDS("results/custom-pmm-500-sims-check-bootstrap2-variance.rds")
 
 df <- rbind(
   as.matrix(res[,c(c(1, 6, 23) +  0, 11)]), # y1 linear - yhat - yhat match
@@ -401,5 +401,5 @@ pp2 <- df |>
   xlab("Coverage") +
   ylab("Estimator and design")
 
-ggsave("paper-nonprob-pmm/results/custom-pmm-500-sims-check-bootstrap2-variance-plot-errors.png", pp)
-ggsave("paper-nonprob-pmm/results/custom-pmm-500-sims-check-bootstrap2-variance-plot-coverage.png", pp2)
+ggsave("results/custom-pmm-500-sims-check-bootstrap2-variance-plot-errors.png", pp)
+ggsave("results/custom-pmm-500-sims-check-bootstrap2-variance-plot-coverage.png", pp2)
