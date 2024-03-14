@@ -11,7 +11,7 @@ set.seed(seed_for_sim)
 
 N <- 10000
 n_A <- 500
-sims <- 500
+sims <- 500 ## 27 minutes
 p <- 50
 KK <- 5
 alpha_vec1 <- c(-2, 1, 1, 1, 1, rep(0, p - 5))
@@ -637,9 +637,19 @@ stopCluster(cl)
 ## processing results
 setDT(res)
 
-results_simulation1_process <- res |> melt(id.vars = 1:3)
-results_simulation1_process[, c("est", "sample", "ci"):=tstrsplit(variable, "_")]
-results_simulation1_process[sample == "ci", ci := "ci"]
-results_simulation1_process[sample == "ci", sample := NA]
+results_simulation1_process <- res |> melt(id.vars = 1:4)
+results_simulation1_process[, c("est", "var", "ci"):=tstrsplit(variable, "_")]
 saveRDS(results_simulation1_process, file = "results/sim-appen2-varsel-results.RDS")
 
+tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues))*100, 
+                                                 se = sd(value)*100, 
+                                                 rmse = sqrt((mean(value)-mean(trues))^2 + var(value))*100), 
+                                    keyby=.(sample, y, est, var)] 
+
+tab2 <- results_simulation1_process[!is.na(ci), .(ci = mean(value)*100), 
+                                    keyby=.(sample, y, est, var)] 
+
+tab1[tab2, on = c("y", "est", "sample", "var")] |>
+  xtable(digits = 2) |>
+  print.xtable(include.rownames = F)
+               
