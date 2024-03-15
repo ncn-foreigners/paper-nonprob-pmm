@@ -1,6 +1,5 @@
 library(nonprobsvy)
 library(tidyverse)
-library(dbscan)
 library(doSNOW)
 library(progress)
 
@@ -10,7 +9,7 @@ sims <- 500
 cores <- 6
 N <- 1e6
 n <- 500
-KK <- 3
+KK <- 5
 
 sigma <- diag(1, nrow = 5)
 sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = .5, min = -.5)
