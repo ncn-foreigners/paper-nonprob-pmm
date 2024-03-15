@@ -639,17 +639,26 @@ setDT(res)
 
 results_simulation1_process <- res |> melt(id.vars = 1:4)
 results_simulation1_process[, c("est", "var", "ci"):=tstrsplit(variable, "_")]
+
 saveRDS(results_simulation1_process, file = "results/sim-appen2-varsel-results.RDS")
 
 tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues))*100, 
                                                  se = sd(value)*100, 
                                                  rmse = sqrt((mean(value)-mean(trues))^2 + var(value))*100), 
-                                    keyby=.(sample, y, est, var)] 
+                                    keyby=.(sample, y, est, var)] |>
+  melt(id.vars = c(1, 4,2,3)) |>
+  transform(sample=paste(sample, variable, sep = "_")) |>
+  transform(variable=NULL) |>
+  dcast(... ~ sample, value.var = "value") |>
+  {\(x) x[order(y, est, var)]}() 
 
 tab2 <- results_simulation1_process[!is.na(ci), .(ci = mean(value)*100), 
-                                    keyby=.(sample, y, est, var)] 
+                                    keyby=.(sample, y, est, var)]  |>
+  dcast(... ~ sample, value.var = "ci")
 
-tab1[tab2, on = c("y", "est", "sample", "var")] |>
+tab1[tab2, on = c("y", "est", "var")] |>
+  setcolorder(c("y", "est", "var", "b1_bias", "b1_se", "b1_rmse", "b1", "b2_bias", "b2_se", "b2_rmse", "b2")) |>
+  {\(x) x[,y:=NULL]}() |>
   xtable(digits = 2) |>
   print.xtable(include.rownames = F)
                
