@@ -31,13 +31,8 @@ population <- data.frame(
 
 
 # simulation --------------------------------------------------------------
-<<<<<<< HEAD
 cores <- 8
 sims <- 500
-=======
-
-cores <- 8
->>>>>>> 356b1ccc6ae55d379c4409fab3cf8130b3aacf22
 cl <- makeCluster(cores)
 clusterExport(cl, c("N", "n"))
 
