@@ -4,8 +4,6 @@ library(progress)
 library(tidyverse)
 
 set.seed(2024)
-
-sims <- 500
 N <- 1e5
 n <- 500
 KK2 <- 5
@@ -33,7 +31,8 @@ population <- data.frame(
 
 
 # simulation --------------------------------------------------------------
-
+cores <- 8
+sims <- 500
 cl <- makeCluster(cores)
 clusterExport(cl, c("N", "n"))
 

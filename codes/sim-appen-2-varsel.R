@@ -48,7 +48,7 @@ pi_B2 <- plogis(3.5 + as.numeric(log(X^2) %*% alpha_vec2) - sin(X[, "X3"] + X[, 
 
 
 ## generate data
-population <- data.frame(pi_A, Y_11, Y_12, Y_21, Y_22, X[, 2:p])
+population <- data.frame(pi_A_Y11, pi_A_Y12, pi_A_Y21, pi_A_Y22, Y_11, Y_12, Y_21, Y_22, X[, 2:p])
 
 cores <- 5
 cl <- makeCluster(cores)
