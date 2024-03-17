@@ -179,20 +179,20 @@ res <- foreach(k=1:sims, .combine = rbind,
                    pmmA =  c(pmmA_s$output$mean, pmmA_d$output$mean),
                    pmmB =  c(pmmB_s$output$mean, pmmB_d$output$mean),
                    
-                   glm_ci = c(glm_s$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < glm_s$confidence_interval[, 2],
-                              glm_s$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < glm_s$confidence_interval[, 2],
-                              glm_d$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < glm_d$confidence_interval[, 2],
-                              glm_d$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < glm_d$confidence_interval[, 2]),
+                   glm_ci = c(glm_s$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < glm_s$confidence_interval[1, 2],
+                              glm_s$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < glm_s$confidence_interval[2, 2],
+                              glm_d$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < glm_d$confidence_interval[1, 2],
+                              glm_d$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < glm_d$confidence_interval[2, 2]),
                    
-                   pmmA_ci = c(pmmA_s$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmA_s$confidence_interval[, 2],
-                               pmmA_s$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmA_s$confidence_interval[, 2],
-                               pmmA_d$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmA_d$confidence_interval[, 2],
-                               pmmA_d$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmA_d$confidence_interval[, 2]),
+                   pmmA_ci = c(pmmA_s$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmA_s$confidence_interval[1, 2],
+                               pmmA_s$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmA_s$confidence_interval[2, 2],
+                               pmmA_d$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmA_d$confidence_interval[1, 2],
+                               pmmA_d$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmA_d$confidence_interval[2, 2]),
                    
-                   pmmB_ci = c(pmmB_s$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmB_s$confidence_interval[, 2],
-                               pmmB_s$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmB_s$confidence_interval[, 2],
-                               pmmB_d$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmB_d$confidence_interval[, 2],
-                               pmmB_d$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmB_d$confidence_interval[, 2])
+                   pmmB_ci = c(pmmB_s$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmB_s$confidence_interval[1, 2],
+                               pmmB_s$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmB_s$confidence_interval[2, 2],
+                               pmmB_d$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmB_d$confidence_interval[1, 2],
+                               pmmB_d$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmB_d$confidence_interval[2, 2])
                  )
                    
                  
