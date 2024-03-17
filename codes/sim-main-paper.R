@@ -75,43 +75,43 @@ results_simulation1 <- foreach(k=1:sims, .combine = rbind,
                          se = TRUE, family_outcome = "gaussian", method_outcome = "glm")
 
   ## hat-hat
-  mi_pmm1a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm1b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 1, predictive_match = 2),
                           control_inference = controlInf(pmm_exact_se = TRUE))
   ## hat-y
-  mi_pmm1b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm1a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 1, predictive_match = 1),
                           control_inference = controlInf(pmm_exact_se = TRUE))
   ## hat-hat
-  mi_pmm1a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm1b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 1, predictive_match = 2),
                           control_inference = controlInf(pmm_exact_se = TRUE))
   ## hat-y
-  mi_pmm1b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm1a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 1, predictive_match = 1),
                           control_inference = controlInf(pmm_exact_se = TRUE))
 
   ## hat-hat
-  mi_pmm5a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm5b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 5, predictive_match = 2),
                           control_inference = controlInf(pmm_exact_se = TRUE))
   ## hat-y
-  mi_pmm5b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm5a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 5, predictive_match = 1),
                           control_inference = controlInf(pmm_exact_se = TRUE))
   ## hat-hat
-  mi_pmm5a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm5b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                            control_outcome = controlOut(k = 5, predictive_match = 2),
                            control_inference = controlInf(pmm_exact_se = TRUE))
   ## hat-y
-  mi_pmm5b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm5a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                            control_outcome = controlOut(k = 5, predictive_match = 1),
                            control_inference = controlInf(pmm_exact_se = TRUE))
@@ -119,43 +119,43 @@ results_simulation1 <- foreach(k=1:sims, .combine = rbind,
 
   # srs bootstrap -----------------------------------------------------------
   ## hat-hat
-  mi_pmm1a_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm1b_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 1, predictive_match = 2),
                           control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
   ## hat-y
-  mi_pmm1b_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm1a_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 1, predictive_match = 1),
                           control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
   ## hat-hat
-  mi_pmm1a_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm1b_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                            control_outcome = controlOut(k = 1, predictive_match = 2),
                            control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
   ## hat-y
-  mi_pmm1b_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm1a_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                            control_outcome = controlOut(k = 1, predictive_match = 1),
                            control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
   
   ## hat-hat
-  mi_pmm5a_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm5b_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 5, predictive_match = 2),
                           control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
   ## hat-y
-  mi_pmm5b_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm5a_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                           control_outcome = controlOut(k = 5, predictive_match = 1),
                           control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
   ## hat-hat
-  mi_pmm5a_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm5b_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                            control_outcome = controlOut(k = 5, predictive_match = 2),
                            control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
   ## hat-y
-  mi_pmm5b_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm5a_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
                            control_outcome = controlOut(k = 5, predictive_match = 1),
                            control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
@@ -248,43 +248,43 @@ results_simulation1_no_v2 <- foreach(k=1:sims, .combine = rbind,
                          se = TRUE, family_outcome = "gaussian", method_outcome = "glm")
   
   ## hat-hat
-  mi_pmm1a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm1b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm", 
                           control_outcome = controlOut(k = 1, predictive_match = 2),
                           control_inference = controlInf(pmm_exact_se = FALSE))
   ## hat-y
-  mi_pmm1b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm1a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm", 
                           control_outcome = controlOut(k = 1, predictive_match = 1),
                           control_inference = controlInf(pmm_exact_se = FALSE))
   ## hat-hat
-  mi_pmm1a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm1b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm", 
                            control_outcome = controlOut(k = 1, predictive_match = 2),
                            control_inference = controlInf(pmm_exact_se = FALSE))
   ## hat-y
-  mi_pmm1b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm1a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm", 
                            control_outcome = controlOut(k = 1, predictive_match = 1),
                            control_inference = controlInf(pmm_exact_se = FALSE))
   
   ## hat-hat
-  mi_pmm5a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm5b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm", 
                           control_outcome = controlOut(k = 5, predictive_match = 2),
                           control_inference = controlInf(pmm_exact_se = FALSE))
   ## hat-y
-  mi_pmm5b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
+  mi_pmm5a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm", 
                           control_outcome = controlOut(k = 5, predictive_match = 1),
                           control_inference = controlInf(pmm_exact_se = FALSE))
   ## hat-hat
-  mi_pmm5a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm5b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm", 
                            control_outcome = controlOut(k = 5, predictive_match = 2),
                            control_inference = controlInf(pmm_exact_se = FALSE))
   ## hat-y
-  mi_pmm5b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
+  mi_pmm5a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
                            se = TRUE, family_outcome = "gaussian", method_outcome = "pmm", 
                            control_outcome = controlOut(k = 5, predictive_match = 1),
                            control_inference = controlInf(pmm_exact_se = FALSE))

@@ -21,7 +21,6 @@ sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
 epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector()
 
 p1 <- exp(x2)/(1+exp(x2))
-p2 <- exp(x1)/(1+exp(x1))
 population <- data.frame(
   x1,
   x2,
