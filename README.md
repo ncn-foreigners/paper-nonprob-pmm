@@ -16,7 +16,7 @@ For this paper we developed two predictive mean matching (PMM) estimators and im
 
 -   PMM estimator $\hat{y}-y$ matching
 
-```{r}
+```r
 PMM_A <- nonprob(outcome = y1 ~ x1 + x2,
                  data = sample_nonprob,
                  svydesign = sample_prob,
@@ -28,7 +28,7 @@ PMM_A <- nonprob(outcome = y1 ~ x1 + x2,
 
 -   PMM estimator $\hat{y}-\hat{y}$ matching
 
-```{r}
+```r
 PMM_A <- nonprob(outcome = y1 ~ x1 + x2,
                  data = sample_nonprob,
                  svydesign = sample_prob,
