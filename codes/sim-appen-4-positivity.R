@@ -15,22 +15,15 @@ sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = .5, min = -.5)
 sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
 x1 <- MASS::mvrnorm(n = N / 5, mu = rep(1, 5), Sigma = sigma) |> as.vector()
 x2 <- rexp(n = N, rate = 1)
-#x3 <- rnbinom(n = N, mu = 10, size = 4)+18
-#x3 <- as.factor(ifelse(x3 > 40, 40, x3))
-
-x3_break_num <- 30
-x3 <- rnbinom(n = N, mu = 40, size = 6)
-x3 <- cut(x3, breaks = quantile(x3, seq(0, 1, length.out = x3_break_num + 1)), include.lowest = TRUE)
-
+x3 <- rnbinom(n = N, mu = 10, size = 4)+18
+x3 <- as.factor(ifelse(x3 > 40, 40, x3))
 
 sigma <- diag(2, nrow = 5)
 sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = 1, min = -.7)
 sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
 epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector()
 
-#x3_effect <- runif(n = NROW(unique(x3)), min = -6, max = 10)
-x3_effect <- runif(n = x3_break_num, min = -6, max = 10)
-
+x3_effect <- runif(n = NROW(unique(x3)), min = -6, max = 10)
 
 p1 <- exp(x2 - x1 - 2) / (1 + exp(x2 - x1 - 2))
 p2 <- exp(x1 * .6 - x2 - 2) / (1 + exp(x1 * .6 - x2 - 2))
@@ -53,8 +46,7 @@ population <- data.frame(
 
 xx1 <- rbinom(prob = plogis(
   x3_dat %*% seq(from = .75, to = .1,
-                 #length.out = NROW(unique(x3))
-                 length.out = x3_break_num)
+                 length.out = NROW(unique(x3)))
 ), size = 1, n = N) |>
   as.logical()
 
@@ -62,16 +54,15 @@ xx1 <- rbinom(prob = plogis(
 
 xx2 <- x3_dat %*% seq(
   from = .75, to = .1, 
-  #length.out = NROW(unique(x3))
-  length.out = x3_break_num
+  length.out = NROW(unique(x3))
 ) + model.matrix(~x1 + x2, population) %*% runif(n = 3)
 xx2 <- as.vector(xx2)
 xx2 <- xx2 > quantile(xx2, .25)
 
 
-# "samplable" population expected size ~~ 60_000
+# stochastic
 population1 <- population[xx1, ]
-# "samplable" population of size 75% of original population
+# deterministic
 population2 <- population[xx2, ]
 
 sims <- 500
