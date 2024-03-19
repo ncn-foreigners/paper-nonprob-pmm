@@ -1,6 +1,8 @@
 library(nonprobsvy)
+library(sampling)
 library(doSNOW)
 library(progress)
+library(foreach)
 library(data.table)
 library(xtable)
 
@@ -21,6 +23,7 @@ sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
 epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector()
 
 p1 <- exp(x2)/(1+exp(x2))
+p2 <- exp(x1)/(1+exp(x1))
 population <- data.frame(
   x1,
   x2,
@@ -28,6 +31,7 @@ population <- data.frame(
   y2 = -1.2 + (x1 - 0.5) ^ 2 + atan(x2) ^ (3 + sin(x1 + x2)) + sin(x1) * cos(x2) + epsilon, 
   y3 = x1 * x2 * epsilon, # multiplicative
   p1 = p1,
+  p2 = p2,
   base_w_srs = N/n
 )
 

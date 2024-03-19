@@ -3,6 +3,8 @@ library(sampling)
 library(doSNOW)
 library(progress)
 library(foreach)
+library(data.table)
+library(xtable)
 
 ## generate data
 
@@ -11,7 +13,7 @@ set.seed(seed_for_sim)
 
 N <- 10000
 n_A <- 500
-sims <- 500 ## 27 minutes
+sims <- 500 ## 20 minutes
 p <- 50
 KK <- 5
 alpha_vec1 <- c(-2, 1, 1, 1, 1, rep(0, p - 5))
@@ -50,9 +52,9 @@ pi_B2 <- plogis(3.5 + as.numeric(log(X^2) %*% alpha_vec2) - sin(X[, "X3"] + X[, 
 ## generate data
 population <- data.frame(pi_A_Y11, pi_A_Y12, pi_A_Y21, pi_A_Y22, Y_11, Y_12, Y_21, Y_22, X[, 2:p])
 
-cores <- 5
+cores <- 8
 cl <- makeCluster(cores)
-clusterExport(cl, c("N", "n"))
+clusterExport(cl, c("N"))
 
 registerDoSNOW(cl)
 
@@ -74,10 +76,10 @@ res <- foreach(k=1:sims, .combine = rbind,
   flag_A_Y21 <- UPpoisson(pik = pi_A_Y21)
   flag_A_Y22 <- UPpoisson(pik = pi_A_Y22)
   
-  sample_A_svy_Y11 <- svydesign(ids = ~ 1, probs = ~ pi_A, pps = "brewer", data = population[flag_A_Y11 == 1, ])
-  sample_A_svy_Y12 <- svydesign(ids = ~ 1, probs = ~ pi_A, pps = "brewer", data = population[flag_A_Y12 == 1, ])
-  sample_A_svy_Y21 <- svydesign(ids = ~ 1, probs = ~ pi_A, pps = "brewer", data = population[flag_A_Y21 == 1, ])
-  sample_A_svy_Y22 <- svydesign(ids = ~ 1, probs = ~ pi_A, pps = "brewer", data = population[flag_A_Y22 == 1, ])
+  sample_A_svy_Y11 <- svydesign(ids = ~ 1, probs = ~ pi_A_Y11, pps = "brewer", data = population[flag_A_Y11 == 1, ])
+  sample_A_svy_Y12 <- svydesign(ids = ~ 1, probs = ~ pi_A_Y12, pps = "brewer", data = population[flag_A_Y12 == 1, ])
+  sample_A_svy_Y21 <- svydesign(ids = ~ 1, probs = ~ pi_A_Y21, pps = "brewer", data = population[flag_A_Y21 == 1, ])
+  sample_A_svy_Y22 <- svydesign(ids = ~ 1, probs = ~ pi_A_Y22, pps = "brewer", data = population[flag_A_Y22 == 1, ])
   
   sample_B1 <- population[flag_B1 == 1, ]
   sample_B2 <- population[flag_B2 == 1, ]

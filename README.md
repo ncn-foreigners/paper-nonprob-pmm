@@ -10,6 +10,22 @@ Chlebicki P., Chrostowski, Ł. & Beręsewicz, M., "Data integration of non-proba
 
 ## Structure of the repo
 
++ `codes/`
+   + `sim-main-paper.R`
+   + `sim-appen-1-choose-k.R`
+   + `sim-appen-2-varsel.R`
+   + `sim-appen-3-nonparam.R`
+   + `sim-appen-4-positivity.R`
+   + `sim-appen-5-multirobust.R`
++ `results/`
+   + `sim1-paper-results-no-v2.RDS`
+   + `sim1-paper-results.RDS`
+   + `sim-appen1-choose-k-results.RDS`
+   + `sim-appen2-varsel-results.RDS`
+   + `sim-appen3-nonparam.RDS`
+   + `sim-appen4-positivity.RDS`
+   + `sim-appen5-multirobust.RDS`
+
 ## Basic codes
 
 For this paper we developed two predictive mean matching (PMM) estimators and implemented them into the [`nonprobsvy`](https://github.com/ncn-foreigners/nonprobsvy) package. Below you can find functions to run the

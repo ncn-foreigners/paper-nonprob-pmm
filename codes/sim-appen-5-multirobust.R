@@ -1,7 +1,8 @@
 library(nonprobsvy)
-library(tidyverse)
+library(sampling)
 library(doSNOW)
 library(progress)
+library(foreach)
 library(data.table)
 library(xtable)
 
@@ -21,6 +22,7 @@ sigma[upper.tri(sigma)] <- runif(n = (5^2 - 5) / 2, max = 1, min = -.7)
 sigma[lower.tri(sigma)] <- t(sigma)[lower.tri(sigma)]
 epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector()
 p1 <- exp(x2)/(1+exp(x2))
+p2 <- exp(x1)/(1+exp(x1))
 
 population <- data.frame(
   x1,
@@ -28,6 +30,7 @@ population <- data.frame(
   y1 = 1 + x1 * .2 + x2 * 5 + epsilon,
   y2 = -2 + 5 * (x1 - 0.5)^5 + x2 ^ 3 + epsilon,
   p1 = p1,
+  p2 = p2,
   base_w_srs = N/n
 )
 

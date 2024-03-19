@@ -1,7 +1,10 @@
 library(nonprobsvy)
+library(sampling)
 library(doSNOW)
 library(progress)
-library(tidyverse)
+library(foreach)
+library(data.table)
+library(xtable)
 
 set.seed(2024)
 N <- 1e5
@@ -26,6 +29,7 @@ population <- data.frame(
   y1 = 1 + x1 * .5 + x2 * .35 + epsilon,
   y2 = -1.2 + (x1 - 0.5) ^ 2 + atan(x2) ^ (3 + sin(x1 + x2)) + sin(x1) * cos(x2) + epsilon, # weird
   p1 = p1,
+  p2 = p2,
   base_w_srs = N/n
 )
 

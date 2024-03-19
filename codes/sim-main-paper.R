@@ -1,11 +1,12 @@
 remotes::install_github("ncn-foreigners/nonprobsvy") 
 
 library(nonprobsvy)
+library(sampling)
 library(doSNOW)
 library(progress)
 library(foreach)
-library(xtable)
 library(data.table)
+library(xtable)
 
 
 # generate data -----------------------------------------------------------
