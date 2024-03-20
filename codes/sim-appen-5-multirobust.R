@@ -51,147 +51,144 @@ res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "dbscan"),
                .options.snow = opts,
                .errorhandling = "remove") %dopar% {
-                 
-                 flag_bd1 <- pmin( # planned size ~~ 9K
-                   rbinom(n = 1:N, size = 1, prob = p1),
-                   rbinom(n = 1:N, size = 1, prob = p2)
-                 )
-                 base_w_bd <- N/n
-                 
-                 sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
-                                          data = population[sample(1:N, n),])
-                 
-                 glm1 <- nonprob(
-                   outcome = y1 + y2 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "glm",
-                   pop_size = N,
-                   family_outcome = "gaussian"
-                 )
-                 
-                 pmmA <- nonprob(
-                   outcome = y1 + y2 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 1),
-                   control_inference = controlInf(
-                     pmm_exact_se = TRUE
-                   )
-                 )
-                 
-                 pmmB <- nonprob(
-                   outcome = y1 + y2 ~ x1 + x2,
-                   data = population[flag_bd1 == 1, , drop = FALSE],
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 2),
-                   control_inference = controlInf(
-                     pmm_exact_se = TRUE
-                   )
-                 )
-                 
-                 mm1 <- lm(cbind(y1, y2) ~ x1 + x2, 
-                           population[flag_bd1 == 1, , drop = FALSE])
-                 
-                 mm2 <- lm(cbind(y1, y2) ~ I((x1 - 0.5)^5) + I(x2^3), 
-                           population[flag_bd1 == 1, , drop = FALSE])
-                 
-                 ddf <- cbind(population[flag_bd1 == 1, , drop = FALSE],
-                              "preds_lin" = predict(mm1),
-                              "preds_nlin" = predict(mm2))
-                 
-                 sample_prob$variables <- cbind(sample_prob$variables, 
-                                                "preds_lin" = predict(mm1, sample_prob$variables),
-                                                "preds_nlin" = predict(mm2, sample_prob$variables))
-                 
-                 pmmA_y1_mv <- nonprob(
-                   outcome = y1 ~ preds_lin.y1 + preds_nlin.y1 - 1,
-                   data = ddf,
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 1),
-                   control_inference = controlInf(
-                     pmm_exact_se = TRUE
-                   )
-                 )
-                 
-                 pmmA_y2_mv <- nonprob(
-                   outcome = y2 ~ preds_lin.y2 + preds_nlin.y2 - 1,
-                   data = ddf,
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 1),
-                   control_inference = controlInf(
-                     pmm_exact_se = TRUE
-                   )
-                 )
-                 
-                 pmmB_y1_mv <- nonprob(
-                   outcome = y1 ~ preds_lin.y1 + preds_nlin.y1 - 1,
-                   data = ddf,
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 2),
-                   control_inference = controlInf(
-                     pmm_exact_se = TRUE
-                   )
-                 )
-                 
-                 pmmB_y2_mv <- nonprob(
-                   outcome = y2 ~ preds_lin.y2 + preds_nlin.y2 - 1,
-                   data = ddf,
-                   svydesign = sample_prob,
-                   method_outcome = "pmm",
-                   pop_size = N,
-                   family_outcome = "gaussian",
-                   control_outcome = controlOut(k = KK, predictive_match = 2),
-                   control_inference = controlInf(
-                     pmm_exact_se = TRUE
-                   )
-                 )
-                 
-                 ## save results
-                 
-                 data.frame(
-                   k = k,
-                   y = c("y1", "y2"),
-                   trues =  c(mean(population$y1), mean(population$y2)),
-                   glm =    glm1$output$mean,
-                   pmmA =   pmmA$output$mean,
-                   pmmA_mv = c(pmmA_y1_mv$output$mean, pmmA_y2_mv$output$mean),
-                   pmmB =   pmmB$output$mean,
-                   pmmB_mv =  c(pmmB_y1_mv$output$mean, pmmB_y2_mv$output$mean),
-                   
-                   glm_ci = c(glm1$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < glm1$confidence_interval[1, 2],
-                              glm1$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < glm1$confidence_interval[2, 2]),
-                   
-                   pmmA_ci = c(pmmA$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmA$confidence_interval[1, 2],
-                               pmmA$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmA$confidence_interval[2, 2]),
-                   
-                   pmmA_mv_ci = c(pmmA_y1_mv$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmA_y1_mv$confidence_interval[, 2],
-                                  pmmA_y2_mv$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmA_y2_mv$confidence_interval[, 2]),
-                   
-                   pmmB_ci =  c(pmmB$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmB$confidence_interval[1, 2],
-                                pmmB$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmB$confidence_interval[2, 2]),
-                   
-                   pmmB_mv_ci = c(pmmB_y1_mv$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmB_y1_mv$confidence_interval[, 2],
-                                  pmmB_y2_mv$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmB_y2_mv$confidence_interval[, 2])
-                 )
-                 
-                
-               }
+  flag_bd1 <- pmin( # planned size ~~ 9K
+    rbinom(n = 1:N, size = 1, prob = p1),
+    rbinom(n = 1:N, size = 1, prob = p2)
+  )
+  base_w_bd <- N/n
+  
+  sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
+                           data = population[sample(1:N, n),])
+  
+  glm1 <- nonprob(
+    outcome = y1 + y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "glm",
+    pop_size = N,
+    family_outcome = "gaussian"
+  )
+  
+  pmmA <- nonprob(
+    outcome = y1 + y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(
+      pmm_exact_se = TRUE
+    )
+  )
+  
+  pmmB <- nonprob(
+    outcome = y1 + y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(
+      pmm_exact_se = TRUE
+    )
+  )
+  
+  mm1 <- lm(cbind(y1, y2) ~ x1 + x2, 
+            population[flag_bd1 == 1, , drop = FALSE])
+  
+  mm2 <- lm(cbind(y1, y2) ~ I((x1 - 0.5)^5) + I(x2^3), 
+            population[flag_bd1 == 1, , drop = FALSE])
+  
+  ddf <- cbind(population[flag_bd1 == 1, , drop = FALSE],
+               "preds_lin" = predict(mm1),
+               "preds_nlin" = predict(mm2))
+  
+  sample_prob$variables <- cbind(sample_prob$variables, 
+                                 "preds_lin" = predict(mm1, sample_prob$variables),
+                                 "preds_nlin" = predict(mm2, sample_prob$variables))
+  
+  pmmA_y1_mv <- nonprob(
+    outcome = y1 ~ preds_lin.y1 + preds_nlin.y1 - 1,
+    data = ddf,
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(
+      pmm_exact_se = TRUE
+    )
+  )
+  
+  pmmA_y2_mv <- nonprob(
+    outcome = y2 ~ preds_lin.y2 + preds_nlin.y2 - 1,
+    data = ddf,
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(
+      pmm_exact_se = TRUE
+    )
+  )
+  
+  pmmB_y1_mv <- nonprob(
+    outcome = y1 ~ preds_lin.y1 + preds_nlin.y1 - 1,
+    data = ddf,
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(
+      pmm_exact_se = TRUE
+    )
+  )
+  
+  pmmB_y2_mv <- nonprob(
+    outcome = y2 ~ preds_lin.y2 + preds_nlin.y2 - 1,
+    data = ddf,
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(
+      pmm_exact_se = TRUE
+    )
+  )
+  
+  ## save results
+  
+  data.frame(
+    k = k,
+    y = c("y1", "y2"),
+    trues =  c(mean(population$y1), mean(population$y2)),
+    glm =    glm1$output$mean,
+    pmmA =   pmmA$output$mean,
+    pmmA_mv = c(pmmA_y1_mv$output$mean, pmmA_y2_mv$output$mean),
+    pmmB =   pmmB$output$mean,
+    pmmB_mv =  c(pmmB_y1_mv$output$mean, pmmB_y2_mv$output$mean),
+    
+    glm_ci = c(glm1$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < glm1$confidence_interval[1, 2],
+               glm1$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < glm1$confidence_interval[2, 2]),
+    
+    pmmA_ci = c(pmmA$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmA$confidence_interval[1, 2],
+                pmmA$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmA$confidence_interval[2, 2]),
+    
+    pmmA_mv_ci = c(pmmA_y1_mv$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmA_y1_mv$confidence_interval[, 2],
+                   pmmA_y2_mv$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmA_y2_mv$confidence_interval[, 2]),
+    
+    pmmB_ci =  c(pmmB$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmB$confidence_interval[1, 2],
+                 pmmB$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmB$confidence_interval[2, 2]),
+    
+    pmmB_mv_ci = c(pmmB_y1_mv$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmB_y1_mv$confidence_interval[, 2],
+                   pmmB_y2_mv$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmB_y2_mv$confidence_interval[, 2])
+  )
+}
 
 stopCluster(cl)
 
