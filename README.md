@@ -2,7 +2,7 @@
 
 ## Basic info
 
-Repository for the paper:
+Repository for [the paper](paper/paper-pmm.pdf):
 
 ```         
 Chlebicki P., Chrostowski, Ł. & Beręsewicz, M., "Data integration of non-probability and probability samples with predictive mean matching"
