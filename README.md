@@ -11,20 +11,20 @@ Chlebicki P., Chrostowski, Ł. & Beręsewicz, M., "Data integration of non-proba
 ## Structure of the repo
 
 + `codes/`
-   + `sim-main-paper.R`
-   + `sim-appen-1-choose-k.R`
-   + `sim-appen-2-varsel.R`
-   + `sim-appen-3-nonparam.R`
-   + `sim-appen-4-positivity.R`
-   + `sim-appen-5-multirobust.R`
+   + `sim-main-paper.R` - main simulation study (section 4)
+   + `sim-appen-1-choose-k.R` -- additional simulation (section C.1)
+   + `sim-appen-2-varsel.R` -- additional simulation (section C.2) 
+   + `sim-appen-3-nonparam.R` -- additional simulation (section C.3)
+   + `sim-appen-4-positivity.R` -- additional simulation (section C.4)
+   + `sim-appen-5-multirobust.R` -- additional simulation (section C.5)
 + `results/`
-   + `sim1-paper-results-no-v2.RDS`
-   + `sim1-paper-results.RDS`
-   + `sim-appen1-choose-k-results.RDS`
-   + `sim-appen2-varsel-results.RDS`
-   + `sim-appen3-nonparam.RDS`
-   + `sim-appen4-positivity.RDS`
-   + `sim-appen5-multirobust.RDS`
+   + `sim1-paper-results.RDS` -- main simulation study results (table 4.1 and 4.1)
+   + `sim1-paper-results-no-v2.RDS` --  main simulation study results (table 4.2) 
+   + `sim-appen1-choose-k-results.RDS`  -- additional simulation (section C.1)
+   + `sim-appen2-varsel-results.RDS`  -- additional simulation (section C.2)
+   + `sim-appen3-nonparam.RDS` -- additional simulation (section C.3)
+   + `sim-appen4-positivity.RDS` -- additional simulation (section C.4)
+   + `sim-appen5-multirobust.RDS` -- additional simulation (section C.1)
 
 ## Basic codes
 
