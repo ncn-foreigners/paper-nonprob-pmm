@@ -73,6 +73,14 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian"
   )
   
+  nn1_y1 <- nonprob(
+    outcome = y1 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "nn",
+    family_outcome = "gaussian"
+  )
+  # 
   pmmA_y1 <- nonprob(
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -82,7 +90,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 1),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  
+
   pmmB_y1 <- nonprob(
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -103,7 +111,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 1, pmm_reg_engine = "loess"),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  
+
   pmmB_y1_l <- nonprob(
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -123,6 +131,14 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian"
   )
   
+  nn1_y2 <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "nn",
+    family_outcome = "gaussian"
+  )
+  
   pmmA_y2 <- nonprob(
     outcome = y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -132,7 +148,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 1),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  
+
   pmmB_y2 <- nonprob(
     outcome = y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -142,8 +158,8 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  
-  ## 
+
+  ##
   pmmA_y2_l <- nonprob(
     outcome = y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -153,7 +169,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 1, pmm_reg_engine = "loess"),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  
+
   pmmB_y2_l <- nonprob(
     outcome = y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -173,6 +189,14 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian"
   )
   
+  nn_y3 <- nonprob(
+    outcome = y3 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "nn",
+    family_outcome = "gaussian"
+  )
+  
   pmmA_y3 <- nonprob(
     outcome = y3 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -182,7 +206,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 1),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  
+
   pmmB_y3 <- nonprob(
     outcome = y3 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -192,8 +216,8 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  
-  ## 
+
+  ##
   pmmA_y3_l <- nonprob(
     outcome = y3 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -203,7 +227,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 1, pmm_reg_engine = "loess"),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  
+
   pmmB_y3_l <- nonprob(
     outcome = y3 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -219,6 +243,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     y = c("y1", "y2", "y3"),
     trues =  c(mean(population$y1), mean(population$y2), mean(population$y3)),
     glm =    c(glm1_y1$output$mean, glm1_y2$output$mean, glm1_y2$output$mean),
+    nn =    c(nn1_y1$output$mean, nn1_y2$output$mean, nn1_y2$output$mean),
     pmmA =   c(pmmA_y1$output$mean, pmmA_y2$output$mean, pmmA_y3$output$mean),
     pmmA_l = c(pmmA_y1_l$output$mean, pmmA_y2_l$output$mean, pmmA_y3_l$output$mean),
     pmmB =   c(pmmB_y1$output$mean, pmmB_y2$output$mean, pmmB_y3$output$mean),
@@ -228,18 +253,22 @@ res <- foreach(k=1:sims, .combine = rbind,
                glm1_y2$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < glm1_y2$confidence_interval[, 2],
                glm1_y3$confidence_interval[, 1] < mean(population$y3) & mean(population$y3) < glm1_y3$confidence_interval[, 2]),
     
+    nn_ci = c(nn1_y1$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < nn1_y1$confidence_interval[, 2],
+               nn1_y2$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < nn1_y2$confidence_interval[, 2],
+               nn1_y3$confidence_interval[, 1] < mean(population$y3) & mean(population$y3) < nn1_y3$confidence_interval[, 2]),
+    
     pmmA_ci = c(pmmA_y1$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmA_y1$confidence_interval[, 2],
                 pmmA_y2$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmA_y2$confidence_interval[, 2],
                 pmmA_y3$confidence_interval[, 1] < mean(population$y3) & mean(population$y3) < pmmA_y3$confidence_interval[, 2]),
-    
+
     pmmA_l_ci = c(pmmA_y1_l$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmA_y1_l$confidence_interval[, 2],
                   pmmA_y2_l$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmA_y2_l$confidence_interval[, 2],
                   pmmA_y3_l$confidence_interval[, 1] < mean(population$y3) & mean(population$y3) < pmmA_y3_l$confidence_interval[, 2]),
-    
+
     pmmB_ci =  c(pmmB_y1$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmB_y1$confidence_interval[, 2],
                  pmmB_y2$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmB_y2$confidence_interval[, 2],
                  pmmB_y3$confidence_interval[, 1] < mean(population$y3) & mean(population$y3) < pmmB_y3$confidence_interval[, 2]),
-    
+
     pmmB_l_ci = c(pmmB_y1_l$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmB_y1_l$confidence_interval[, 2],
                   pmmB_y2_l$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmB_y2_l$confidence_interval[, 2],
                   pmmB_y3_l$confidence_interval[, 1] < mean(population$y3) & mean(population$y3) < pmmB_y3_l$confidence_interval[, 2])
@@ -258,6 +287,11 @@ results_simulation1_process[var == "ci", ci :="ci"]
 results_simulation1_process[var == "ci", var:= NA]
 
 saveRDS(results_simulation1_process, file = "results/sim-appen3-nonparam.RDS")
+
+## just for knn added
+# results_simulation1_process_old <- readRDS( "results/sim-appen3-nonparam.RDS")
+# results_simulation1_process <- rbind(results_simulation1_process_old, results_simulation1_process)
+# saveRDS(results_simulation1_process, "results/sim-appen3-nonparam.RDS")
 
 tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues))*100, 
                                                  se = sd(value)*100, 

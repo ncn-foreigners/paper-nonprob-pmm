@@ -59,12 +59,22 @@ res <- foreach(k=1:sims, .combine = rbind,
   
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
                            data = population[sample(1:N, n),])
-  
+
   glm1 <- nonprob(
     outcome = y1 + y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "glm",
+    pop_size = N,
+    family_outcome = "gaussian"
+  )
+  
+  nn1 <- nonprob(
+    outcome = y1 + y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "nn",
+    control_outcome = controlOut(k = KK),
     pop_size = N,
     family_outcome = "gaussian"
   )
@@ -81,7 +91,7 @@ res <- foreach(k=1:sims, .combine = rbind,
       pmm_exact_se = TRUE
     )
   )
-  
+
   pmmB <- nonprob(
     outcome = y1 + y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
@@ -121,7 +131,7 @@ res <- foreach(k=1:sims, .combine = rbind,
       pmm_exact_se = TRUE
     )
   )
-  
+
   pmmA_y2_mv <- nonprob(
     outcome = y2 ~ preds_lin.y2 + preds_nlin.y2 - 1,
     data = ddf,
@@ -147,7 +157,7 @@ res <- foreach(k=1:sims, .combine = rbind,
       pmm_exact_se = TRUE
     )
   )
-  
+
   pmmB_y2_mv <- nonprob(
     outcome = y2 ~ preds_lin.y2 + preds_nlin.y2 - 1,
     data = ddf,
@@ -168,6 +178,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     y = c("y1", "y2"),
     trues =  c(mean(population$y1), mean(population$y2)),
     glm =    glm1$output$mean,
+    nn =   nn1$output$mean,
     pmmA =   pmmA$output$mean,
     pmmA_mv = c(pmmA_y1_mv$output$mean, pmmA_y2_mv$output$mean),
     pmmB =   pmmB$output$mean,
@@ -176,15 +187,18 @@ res <- foreach(k=1:sims, .combine = rbind,
     glm_ci = c(glm1$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < glm1$confidence_interval[1, 2],
                glm1$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < glm1$confidence_interval[2, 2]),
     
+    nn_ci = c(nn1$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < nn1$confidence_interval[1, 2],
+               nn1$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < nn1$confidence_interval[2, 2]),
+    
     pmmA_ci = c(pmmA$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmA$confidence_interval[1, 2],
                 pmmA$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmA$confidence_interval[2, 2]),
-    
+
     pmmA_mv_ci = c(pmmA_y1_mv$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmA_y1_mv$confidence_interval[, 2],
                    pmmA_y2_mv$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmA_y2_mv$confidence_interval[, 2]),
-    
+
     pmmB_ci =  c(pmmB$confidence_interval[1, 1] < mean(population$y1) & mean(population$y1) < pmmB$confidence_interval[1, 2],
                  pmmB$confidence_interval[2, 1] < mean(population$y2) & mean(population$y2) < pmmB$confidence_interval[2, 2]),
-    
+
     pmmB_mv_ci = c(pmmB_y1_mv$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmmB_y1_mv$confidence_interval[, 2],
                    pmmB_y2_mv$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmmB_y2_mv$confidence_interval[, 2])
   )
@@ -201,6 +215,12 @@ results_simulation1_process[var == "ci", ci :="ci"]
 results_simulation1_process[var == "ci", var:= NA]
 
 saveRDS(results_simulation1_process, file = "results/sim-appen5-multirobust.RDS")
+
+## just for knn added
+# results_simulation1_process_old <- readRDS( "results/sim-appen5-multirobust.RDS")
+# results_simulation1_process <- rbind(results_simulation1_process_old, results_simulation1_process)
+# saveRDS(results_simulation1_process, "results/sim-appen5-multirobust.RDS")
+
 
 tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues)), 
                                                  se = sd(value), 
