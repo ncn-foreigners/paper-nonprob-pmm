@@ -94,7 +94,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "gaussian"
   )
-  
+
   est_mi_glm_b1_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -103,7 +103,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmA_b1_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -112,7 +112,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmA_b1_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -122,7 +122,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmB_b1_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -131,7 +131,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmB_b1_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -139,6 +139,25 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "gaussian",
     method_outcome = "pmm",
+    control_inference = controlInf(vars_selection = TRUE)
+  )
+  
+  est_mi_nn_b1_y11_no <- nonprob(
+    outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
+    data = sample_B1,
+    svydesign = sample_A_svy_Y11,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "gaussian",
+    method_outcome = "nn"
+  )
+  
+  est_mi_nn_b1_y11_sel <- nonprob(
+    outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
+    data = sample_B1,
+    svydesign = sample_A_svy_Y11,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "gaussian",
+    method_outcome = "nn",
     control_inference = controlInf(vars_selection = TRUE)
   )
   
@@ -151,7 +170,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "gaussian"
   )
-  
+
   est_mi_glm_b1_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -160,7 +179,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmA_b1_y12_no <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -169,7 +188,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmA_b1_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -179,7 +198,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmB_b1_y12_no <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -188,7 +207,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmB_b1_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -196,6 +215,25 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "gaussian",
     method_outcome = "pmm",
+    control_inference = controlInf(vars_selection = TRUE)
+  )
+  
+  est_mi_nn_b1_y12_no <- nonprob(
+    outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
+    data = sample_B1,
+    svydesign = sample_A_svy_Y12,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "gaussian",
+    method_outcome = "nn"
+  )
+  
+  est_mi_nn_b1_y12_sel <- nonprob(
+    outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
+    data = sample_B1,
+    svydesign = sample_A_svy_Y12,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "gaussian",
+    method_outcome = "nn",
     control_inference = controlInf(vars_selection = TRUE)
   )
   
@@ -207,7 +245,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "binomial"
   )
-  
+
   est_mi_glm_b1_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -216,7 +254,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmA_b1_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -225,7 +263,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmA_b1_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -235,7 +273,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmB_b1_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -244,7 +282,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmB_b1_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -252,6 +290,25 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "binomial",
     method_outcome = "pmm",
+    control_inference = controlInf(vars_selection = TRUE)
+  )
+
+  est_mi_nn_b1_y21_no <- nonprob(
+    outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
+    data = sample_B1,
+    svydesign = sample_A_svy_Y21,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "binomial",
+    method_outcome = "nn"
+  )
+  
+  est_mi_nn_b1_y21_sel <- nonprob(
+    outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
+    data = sample_B1,
+    svydesign = sample_A_svy_Y21,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "binomial",
+    method_outcome = "nn",
     control_inference = controlInf(vars_selection = TRUE)
   )
   
@@ -263,7 +320,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "binomial"
   )
-  
+
   est_mi_glm_b1_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -272,7 +329,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmA_b1_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -281,7 +338,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmA_b1_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -291,7 +348,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmB_b1_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -300,7 +357,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmB_b1_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
@@ -311,8 +368,27 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_inference = controlInf(vars_selection = TRUE)
   )
   
+  est_mi_nn_b1_y22_no <- nonprob(
+    outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
+    data = sample_B1,
+    svydesign = sample_A_svy_Y22,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "binomial",
+    method_outcome = "nn"
+  )
+  
+  est_mi_nn_b1_y22_sel <- nonprob(
+    outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
+    data = sample_B1,
+    svydesign = sample_A_svy_Y22,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "binomial",
+    method_outcome = "nn",
+    control_inference = controlInf(vars_selection = TRUE)
+  )
+  
   ## sample B2 ---------------------------------------------------------------
-  ### Y11 -----------------------------------------------------------------
+  ## Y11 -----------------------------------------------------------------
   est_mi_glm_b2_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -320,7 +396,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "gaussian"
   )
-  
+
   est_mi_glm_b2_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -329,7 +405,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmA_b2_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -338,7 +414,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmA_b2_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -348,7 +424,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmB_b2_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -357,7 +433,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmB_b2_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -365,6 +441,25 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "gaussian",
     method_outcome = "pmm",
+    control_inference = controlInf(vars_selection = TRUE)
+  )
+  
+  est_mi_nn_b2_y11_no <- nonprob(
+    outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
+    data = sample_B2,
+    svydesign = sample_A_svy_Y11,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "gaussian",
+    method_outcome = "nn"
+  )
+  
+  est_mi_nn_b2_y11_sel <- nonprob(
+    outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
+    data = sample_B2,
+    svydesign = sample_A_svy_Y11,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "gaussian",
+    method_outcome = "nn",
     control_inference = controlInf(vars_selection = TRUE)
   )
   
@@ -377,7 +472,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "gaussian"
   )
-  
+
   est_mi_glm_b2_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -386,7 +481,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmA_b2_y12_no <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -395,7 +490,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmA_b2_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -405,7 +500,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmB_b2_y12_no <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -414,7 +509,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmB_b2_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -422,6 +517,25 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "gaussian",
     method_outcome = "pmm",
+    control_inference = controlInf(vars_selection = TRUE)
+  )
+  
+  est_mi_nn_b2_y12_no <- nonprob(
+    outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
+    data = sample_B2,
+    svydesign = sample_A_svy_Y12,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "gaussian",
+    method_outcome = "nn"
+  )
+  
+  est_mi_nn_b2_y12_sel <- nonprob(
+    outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
+    data = sample_B2,
+    svydesign = sample_A_svy_Y12,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "gaussian",
+    method_outcome = "nn",
     control_inference = controlInf(vars_selection = TRUE)
   )
   
@@ -433,7 +547,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "binomial"
   )
-  
+
   est_mi_glm_b2_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -442,7 +556,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmA_b2_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -451,7 +565,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmA_b2_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -461,7 +575,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmB_b2_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -470,7 +584,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmB_b2_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -478,6 +592,25 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "binomial",
     method_outcome = "pmm",
+    control_inference = controlInf(vars_selection = TRUE)
+  )
+
+  est_mi_nn_b2_y21_no <- nonprob(
+    outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
+    data = sample_B2,
+    svydesign = sample_A_svy_Y21,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "binomial",
+    method_outcome = "nn"
+  )
+  
+  est_mi_nn_b2_y21_sel <- nonprob(
+    outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
+    data = sample_B2,
+    svydesign = sample_A_svy_Y21,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "binomial",
+    method_outcome = "nn",
     control_inference = controlInf(vars_selection = TRUE)
   )
   
@@ -489,7 +622,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "binomial"
   )
-  
+
   est_mi_glm_b2_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -498,7 +631,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmA_b2_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -507,7 +640,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmA_b2_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -517,7 +650,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
   est_mi_pmmB_b2_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -526,7 +659,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-  
+
   est_mi_pmmB_b2_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -534,6 +667,25 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "binomial",
     method_outcome = "pmm",
+    control_inference = controlInf(vars_selection = TRUE)
+  )
+  
+  est_mi_nn_b2_y22_no <- nonprob(
+    outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
+    data = sample_B2,
+    svydesign = sample_A_svy_Y22,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "binomial",
+    method_outcome = "nn"
+  )
+  
+  est_mi_nn_b2_y22_sel <- nonprob(
+    outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
+    data = sample_B2,
+    svydesign = sample_A_svy_Y22,
+    control_outcome = controlOut(k = KK),
+    family_outcome = "binomial",
+    method_outcome = "nn",
     control_inference = controlInf(vars_selection = TRUE)
   )
   
@@ -546,149 +698,197 @@ res <- foreach(k=1:sims, .combine = rbind,
         mean(population$Y_21), mean(population$Y_22)), 2
     ),
     glm_no = c(
-      est_mi_glm_b1_y11_no$output$mean, est_mi_glm_b1_y12_no$output$mean, 
+      est_mi_glm_b1_y11_no$output$mean, est_mi_glm_b1_y12_no$output$mean,
       est_mi_glm_b1_y21_no$output$mean, est_mi_glm_b1_y22_no$output$mean,
-      est_mi_glm_b2_y11_no$output$mean, est_mi_glm_b2_y12_no$output$mean, 
+      est_mi_glm_b2_y11_no$output$mean, est_mi_glm_b2_y12_no$output$mean,
       est_mi_glm_b2_y21_no$output$mean, est_mi_glm_b2_y22_no$output$mean
     ),
     pmmA_no = c(
-      est_mi_pmmA_b1_y11_no$output$mean, est_mi_pmmA_b1_y12_no$output$mean, 
+      est_mi_pmmA_b1_y11_no$output$mean, est_mi_pmmA_b1_y12_no$output$mean,
       est_mi_pmmA_b1_y21_no$output$mean, est_mi_pmmA_b1_y22_no$output$mean,
-      est_mi_pmmA_b2_y11_no$output$mean, est_mi_pmmA_b2_y12_no$output$mean, 
+      est_mi_pmmA_b2_y11_no$output$mean, est_mi_pmmA_b2_y12_no$output$mean,
       est_mi_pmmA_b2_y21_no$output$mean, est_mi_pmmA_b2_y22_no$output$mean
     ),
     pmmB_no = c(
-      est_mi_pmmB_b1_y11_no$output$mean, est_mi_pmmB_b1_y12_no$output$mean, 
+      est_mi_pmmB_b1_y11_no$output$mean, est_mi_pmmB_b1_y12_no$output$mean,
       est_mi_pmmB_b1_y21_no$output$mean, est_mi_pmmB_b1_y22_no$output$mean,
-      est_mi_pmmB_b2_y11_no$output$mean, est_mi_pmmB_b2_y12_no$output$mean, 
+      est_mi_pmmB_b2_y11_no$output$mean, est_mi_pmmB_b2_y12_no$output$mean,
       est_mi_pmmB_b2_y21_no$output$mean, est_mi_pmmB_b2_y22_no$output$mean
     ),
+    nn_no = c(
+      est_mi_nn_b1_y11_no$output$mean, est_mi_nn_b1_y12_no$output$mean,
+      est_mi_nn_b1_y21_no$output$mean, est_mi_nn_b1_y22_no$output$mean,
+      est_mi_nn_b2_y11_no$output$mean, est_mi_nn_b2_y12_no$output$mean,
+      est_mi_nn_b2_y21_no$output$mean, est_mi_nn_b2_y22_no$output$mean
+    ),
     glm_sel = c(
-      est_mi_glm_b1_y11_sel$output$mean, est_mi_glm_b1_y12_sel$output$mean, 
+      est_mi_glm_b1_y11_sel$output$mean, est_mi_glm_b1_y12_sel$output$mean,
       est_mi_glm_b1_y21_sel$output$mean, est_mi_glm_b1_y22_sel$output$mean,
-      est_mi_glm_b2_y11_sel$output$mean, est_mi_glm_b2_y12_sel$output$mean, 
+      est_mi_glm_b2_y11_sel$output$mean, est_mi_glm_b2_y12_sel$output$mean,
       est_mi_glm_b2_y21_sel$output$mean, est_mi_glm_b2_y22_sel$output$mean
     ),
     pmmA_sel = c(
-      est_mi_pmmA_b1_y11_sel$output$mean, est_mi_pmmA_b1_y12_sel$output$mean, 
+      est_mi_pmmA_b1_y11_sel$output$mean, est_mi_pmmA_b1_y12_sel$output$mean,
       est_mi_pmmA_b1_y21_sel$output$mean, est_mi_pmmA_b1_y22_sel$output$mean,
-      est_mi_pmmA_b2_y11_sel$output$mean, est_mi_pmmA_b2_y12_sel$output$mean, 
+      est_mi_pmmA_b2_y11_sel$output$mean, est_mi_pmmA_b2_y12_sel$output$mean,
       est_mi_pmmA_b2_y21_sel$output$mean, est_mi_pmmA_b2_y22_sel$output$mean
     ),
     pmmB_sel = c(
-      est_mi_pmmB_b1_y11_sel$output$mean, est_mi_pmmB_b1_y12_sel$output$mean, 
+      est_mi_pmmB_b1_y11_sel$output$mean, est_mi_pmmB_b1_y12_sel$output$mean,
       est_mi_pmmB_b1_y21_sel$output$mean, est_mi_pmmB_b1_y22_sel$output$mean,
-      est_mi_pmmB_b2_y11_sel$output$mean, est_mi_pmmB_b2_y12_sel$output$mean, 
+      est_mi_pmmB_b2_y11_sel$output$mean, est_mi_pmmB_b2_y12_sel$output$mean,
       est_mi_pmmB_b2_y21_sel$output$mean, est_mi_pmmB_b2_y22_sel$output$mean
     ),
+    nn_sel = c(
+      est_mi_nn_b1_y11_sel$output$mean, est_mi_nn_b1_y12_sel$output$mean,
+      est_mi_nn_b1_y21_sel$output$mean, est_mi_nn_b1_y22_sel$output$mean,
+      est_mi_nn_b2_y11_sel$output$mean, est_mi_nn_b2_y12_sel$output$mean,
+      est_mi_nn_b2_y21_sel$output$mean, est_mi_nn_b2_y22_sel$output$mean
+    ),
     glm_no_ci = c(
-      est_mi_glm_b1_y11_no$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_glm_b1_y11_no$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_glm_b1_y11_no$confidence_interval[, 2],
-      est_mi_glm_b1_y12_no$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_glm_b1_y12_no$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_glm_b1_y12_no$confidence_interval[, 2],
-      est_mi_glm_b1_y21_no$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_glm_b1_y21_no$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_glm_b1_y21_no$confidence_interval[, 2],
-      est_mi_glm_b1_y22_no$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_glm_b1_y22_no$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_glm_b1_y22_no$confidence_interval[, 2],
-      est_mi_glm_b2_y11_no$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_glm_b2_y11_no$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_glm_b2_y11_no$confidence_interval[, 2],
       est_mi_glm_b2_y12_no$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_glm_b2_y12_no$confidence_interval[, 2],
-      est_mi_glm_b2_y21_no$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_glm_b2_y21_no$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_glm_b2_y21_no$confidence_interval[, 2],
-      est_mi_glm_b2_y22_no$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_glm_b2_y22_no$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_glm_b2_y22_no$confidence_interval[, 2]
     ),
     pmmA_no_ci = c(
-      est_mi_pmmA_b1_y11_no$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_pmmA_b1_y11_no$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_pmmA_b1_y11_no$confidence_interval[, 2],
-      est_mi_pmmA_b1_y12_no$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_pmmA_b1_y12_no$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_pmmA_b1_y12_no$confidence_interval[, 2],
-      est_mi_pmmA_b1_y21_no$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_pmmA_b1_y21_no$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_pmmA_b1_y21_no$confidence_interval[, 2],
-      est_mi_pmmA_b1_y22_no$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_pmmA_b1_y22_no$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_pmmA_b1_y22_no$confidence_interval[, 2],
-      est_mi_pmmA_b2_y11_no$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_pmmA_b2_y11_no$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_pmmA_b2_y11_no$confidence_interval[, 2],
-      est_mi_pmmA_b2_y12_no$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_pmmA_b2_y12_no$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_pmmA_b2_y12_no$confidence_interval[, 2],
-      est_mi_pmmA_b2_y21_no$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_pmmA_b2_y21_no$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_pmmA_b2_y21_no$confidence_interval[, 2],
-      est_mi_pmmA_b2_y22_no$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_pmmA_b2_y22_no$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_pmmA_b2_y22_no$confidence_interval[, 2]
     ),
     pmmB_no_ci = c(
-      est_mi_pmmB_b1_y11_no$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_pmmB_b1_y11_no$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_pmmB_b1_y11_no$confidence_interval[, 2],
-      est_mi_pmmB_b1_y12_no$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_pmmB_b1_y12_no$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_pmmB_b1_y12_no$confidence_interval[, 2],
-      est_mi_pmmB_b1_y21_no$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_pmmB_b1_y21_no$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_pmmB_b1_y21_no$confidence_interval[, 2],
-      est_mi_pmmB_b1_y22_no$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_pmmB_b1_y22_no$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_pmmB_b1_y22_no$confidence_interval[, 2],
-      est_mi_pmmB_b2_y11_no$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_pmmB_b2_y11_no$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_pmmB_b2_y11_no$confidence_interval[, 2],
-      est_mi_pmmB_b2_y12_no$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_pmmB_b2_y12_no$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_pmmB_b2_y12_no$confidence_interval[, 2],
-      est_mi_pmmB_b2_y21_no$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_pmmB_b2_y21_no$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_pmmB_b2_y21_no$confidence_interval[, 2],
-      est_mi_pmmB_b2_y22_no$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_pmmB_b2_y22_no$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_pmmB_b2_y22_no$confidence_interval[, 2]
     ),
+    nn_no_ci = c(
+      est_mi_nn_b1_y11_no$confidence_interval[, 1] < mean(population$Y_11) & 
+        mean(population$Y_11) < est_mi_nn_b1_y11_no$confidence_interval[, 2],
+      est_mi_nn_b1_y12_no$confidence_interval[, 1] < mean(population$Y_12) & 
+        mean(population$Y_12) < est_mi_nn_b1_y12_no$confidence_interval[, 2],
+      est_mi_nn_b1_y21_no$confidence_interval[, 1] < mean(population$Y_21) & 
+        mean(population$Y_21) < est_mi_nn_b1_y21_no$confidence_interval[, 2],
+      est_mi_nn_b1_y22_no$confidence_interval[, 1] < mean(population$Y_22) & 
+        mean(population$Y_22) < est_mi_nn_b1_y22_no$confidence_interval[, 2],
+      est_mi_nn_b2_y11_no$confidence_interval[, 1] < mean(population$Y_11) & 
+        mean(population$Y_11) < est_mi_nn_b2_y11_no$confidence_interval[, 2],
+      est_mi_nn_b2_y12_no$confidence_interval[, 1] < mean(population$Y_12) & 
+        mean(population$Y_12) < est_mi_nn_b2_y12_no$confidence_interval[, 2],
+      est_mi_nn_b2_y21_no$confidence_interval[, 1] < mean(population$Y_21) & 
+        mean(population$Y_21) < est_mi_nn_b2_y21_no$confidence_interval[, 2],
+      est_mi_nn_b2_y22_no$confidence_interval[, 1] < mean(population$Y_22) & 
+        mean(population$Y_22) < est_mi_nn_b2_y22_no$confidence_interval[, 2]
+    ),
     glm_sel_ci = c(
-      est_mi_glm_b1_y11_sel$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_glm_b1_y11_sel$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_glm_b1_y11_sel$confidence_interval[, 2],
-      est_mi_glm_b1_y12_sel$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_glm_b1_y12_sel$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_glm_b1_y12_sel$confidence_interval[, 2],
-      est_mi_glm_b1_y21_sel$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_glm_b1_y21_sel$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_glm_b1_y21_sel$confidence_interval[, 2],
-      est_mi_glm_b1_y22_sel$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_glm_b1_y22_sel$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_glm_b1_y22_sel$confidence_interval[, 2],
-      est_mi_glm_b2_y11_sel$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_glm_b2_y11_sel$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_glm_b2_y11_sel$confidence_interval[, 2],
-      est_mi_glm_b2_y12_sel$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_glm_b2_y12_sel$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_glm_b2_y12_sel$confidence_interval[, 2],
-      est_mi_glm_b2_y21_sel$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_glm_b2_y21_sel$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_glm_b2_y21_sel$confidence_interval[, 2],
-      est_mi_glm_b2_y22_sel$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_glm_b2_y22_sel$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_glm_b2_y22_sel$confidence_interval[, 2]
     ),
     pmmA_sel_ci = c(
-      est_mi_pmmA_b1_y11_sel$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_pmmA_b1_y11_sel$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_pmmA_b1_y11_sel$confidence_interval[, 2],
-      est_mi_pmmA_b1_y12_sel$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_pmmA_b1_y12_sel$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_pmmA_b1_y12_sel$confidence_interval[, 2],
-      est_mi_pmmA_b1_y21_sel$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_pmmA_b1_y21_sel$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_pmmA_b1_y21_sel$confidence_interval[, 2],
-      est_mi_pmmA_b1_y22_sel$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_pmmA_b1_y22_sel$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_pmmA_b1_y22_sel$confidence_interval[, 2],
-      est_mi_pmmA_b2_y11_sel$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_pmmA_b2_y11_sel$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_pmmA_b2_y11_sel$confidence_interval[, 2],
-      est_mi_pmmA_b2_y12_sel$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_pmmA_b2_y12_sel$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_pmmA_b2_y12_sel$confidence_interval[, 2],
-      est_mi_pmmA_b2_y21_sel$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_pmmA_b2_y21_sel$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_pmmA_b2_y21_sel$confidence_interval[, 2],
-      est_mi_pmmA_b2_y22_sel$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_pmmA_b2_y22_sel$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_pmmA_b2_y22_sel$confidence_interval[, 2]
     ),
     
     pmmB_sel_ci = c(
-      est_mi_pmmB_b1_y11_sel$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_pmmB_b1_y11_sel$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_pmmB_b1_y11_sel$confidence_interval[, 2],
-      est_mi_pmmB_b1_y12_sel$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_pmmB_b1_y12_sel$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_pmmB_b1_y12_sel$confidence_interval[, 2],
-      est_mi_pmmB_b1_y21_sel$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_pmmB_b1_y21_sel$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_pmmB_b1_y21_sel$confidence_interval[, 2],
-      est_mi_pmmB_b1_y22_sel$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_pmmB_b1_y22_sel$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_pmmB_b1_y22_sel$confidence_interval[, 2],
-      est_mi_pmmB_b2_y11_sel$confidence_interval[, 1] < mean(population$Y_11) & 
+      est_mi_pmmB_b2_y11_sel$confidence_interval[, 1] < mean(population$Y_11) &
       mean(population$Y_11) < est_mi_pmmB_b2_y11_sel$confidence_interval[, 2],
-      est_mi_pmmB_b2_y12_sel$confidence_interval[, 1] < mean(population$Y_12) & 
+      est_mi_pmmB_b2_y12_sel$confidence_interval[, 1] < mean(population$Y_12) &
       mean(population$Y_12) < est_mi_pmmB_b2_y12_sel$confidence_interval[, 2],
-      est_mi_pmmB_b2_y21_sel$confidence_interval[, 1] < mean(population$Y_21) & 
+      est_mi_pmmB_b2_y21_sel$confidence_interval[, 1] < mean(population$Y_21) &
       mean(population$Y_21) < est_mi_pmmB_b2_y21_sel$confidence_interval[, 2],
-      est_mi_pmmB_b2_y22_sel$confidence_interval[, 1] < mean(population$Y_22) & 
+      est_mi_pmmB_b2_y22_sel$confidence_interval[, 1] < mean(population$Y_22) &
       mean(population$Y_22) < est_mi_pmmB_b2_y22_sel$confidence_interval[, 2]
+    ),
+    nn_sel_ci = c(
+      est_mi_nn_b1_y11_sel$confidence_interval[, 1] < mean(population$Y_11) & 
+        mean(population$Y_11) < est_mi_nn_b1_y11_sel$confidence_interval[, 2],
+      est_mi_nn_b1_y12_sel$confidence_interval[, 1] < mean(population$Y_12) & 
+        mean(population$Y_12) < est_mi_nn_b1_y12_sel$confidence_interval[, 2],
+      est_mi_nn_b1_y21_sel$confidence_interval[, 1] < mean(population$Y_21) & 
+        mean(population$Y_21) < est_mi_nn_b1_y21_sel$confidence_interval[, 2],
+      est_mi_nn_b1_y22_sel$confidence_interval[, 1] < mean(population$Y_22) & 
+        mean(population$Y_22) < est_mi_nn_b1_y22_sel$confidence_interval[, 2],
+      est_mi_nn_b2_y11_sel$confidence_interval[, 1] < mean(population$Y_11) & 
+        mean(population$Y_11) < est_mi_nn_b2_y11_sel$confidence_interval[, 2],
+      est_mi_nn_b2_y12_sel$confidence_interval[, 1] < mean(population$Y_12) & 
+        mean(population$Y_12) < est_mi_nn_b2_y12_sel$confidence_interval[, 2],
+      est_mi_nn_b2_y21_sel$confidence_interval[, 1] < mean(population$Y_21) & 
+        mean(population$Y_21) < est_mi_nn_b2_y21_sel$confidence_interval[, 2],
+      est_mi_nn_b2_y22_sel$confidence_interval[, 1] < mean(population$Y_22) & 
+        mean(population$Y_22) < est_mi_nn_b2_y22_sel$confidence_interval[, 2]
     )
   )
 }
@@ -703,6 +903,11 @@ results_simulation1_process <- res |> melt(id.vars = 1:4)
 results_simulation1_process[, c("est", "var", "ci"):=tstrsplit(variable, "_")]
 
 saveRDS(results_simulation1_process, file = "results/sim-appen2-varsel-results.RDS")
+
+## just for knn added
+# results_simulation1_process_old <- readRDS( "results/sim-appen2-varsel-results.RDS")
+# results_simulation1_process <- rbind(results_simulation1_process_old, results_simulation1_process)
+# saveRDS(results_simulation1_process, "results/sim-appen2-varsel-results.RDS")
 
 tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues))*100, 
                                                  se = sd(value)*100, 
