@@ -55,7 +55,7 @@ tab1_ci_no_v2 <- results_simulation1_no_v2_process[!is.na(ci), .(ci=mean(value))
 setnames(tab1_ci_no_v2, names(tab1_ci_no_v2), c("est", "sample", "y1_no_v2ci", "y2_no_v2ci", "y3_no_v2ci"))
 
 tab1_ci[tab1_ci_no_v2][!grepl("glm|mis", est)] |>
-  setcolorder(x= _, c("est", "sample", "y1", "y1_no_v2ci", "y2", "y2_no_v2ci", "y3", "y3_no_v2ci")) |> 
+  setcolorder(x= _, c("est", "sample", "y1_no_v2ci",  "y1",  "y2_no_v2ci", "y2",  "y3_no_v2ci", "y3")) |> 
   {\(x) x[order(-sample, est)][, ":="(sample=NULL)] }()  |>
   xtable() |>
   print.xtable(include.rownames = FALSE)
@@ -63,16 +63,24 @@ tab1_ci[tab1_ci_no_v2][!grepl("glm|mis", est)] |>
 
 ## table 3 data ------------------------------------------------------------
 
-
-tab1_ci_b <- results_simulation1_process[!is.na(ci) & !is.na(ci_boot), .(ci=mean(value)), 
-                                         .(est, sample, y)] |>
+tab1_ci <- results_simulation1_process[!is.na(ci) & is.na(ci_boot), .(ci=mean(value)), 
+                                       .(est, sample, y)] |>
   transform(est = ifelse(grepl("all", y), est, est)) |>
   transform(est = ifelse(grepl("mis", y), paste0(est, "_mis"), est),
             y = gsub("_(mis|all)", "", y)) |>
   transform(ci = ci*100) |>
   dcast(... ~ y, value.var = "ci") 
 
-tab1_ci[tab1_ci_b, on = c("est", "sample"), ":="(y1_ci_b=y1,y2_ci_b=y2,y3_ci_b=y3)][!grepl("mis|glm", est)] |>
+tab1_ci_b <- results_simulation1_process[!is.na(ci) & !is.na(ci_boot), .(ci=mean(value)), 
+                                         .(est, sample, y)] |>
+  transform(est = ifelse(grepl("all", y), est, est)) |>
+  transform(est = ifelse(grepl("mis", y), paste0(est, "_mis"), est),
+            y = gsub("_(mis|all)", "", y)) |>
+  transform(ci = ci*100,
+            y=paste0(y,"_b")) |>
+  dcast(... ~ y, value.var = "ci") 
+
+tab1_ci[tab1_ci_b, on = c("est", "sample"), ":="(y1_ci_b=y1_b,y2_ci_b=y2_b,y3_ci_b=y3_b)][!grepl("mis|glm", est)] |>
   setcolorder(c("est", "sample", "y1", "y1_ci_b", "y2", "y2_ci_b", "y3", "y3_ci_b")) |>
   {\(x) x[order(-sample, est)][, ":="(sample=NULL)] }()  |>
   xtable() |>
