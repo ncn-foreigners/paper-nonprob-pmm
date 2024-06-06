@@ -1,12 +1,4 @@
-library(nonprobsvy)
-library(sampling)
-library(doSNOW)
-library(progress)
-library(foreach)
-library(data.table)
-library(xtable)
-
-set.seed(2024)
+set.seed(seed_for_sim)
 N <- 1e5
 n <- 500
 KK_pmm2 <- 5
@@ -24,7 +16,7 @@ epsilon <- MASS::mvrnorm(n = N / 5, mu = rep(0, 5), Sigma = sigma) |> as.vector(
 
 p1 <- exp(x2)/(1+exp(x2))
 p2 <- exp(x1)/(1+exp(x1))
-population <- data.frame(
+population <- data.table(
   x1,
   x2,
   y1 = 1 + x1 * .5 + x2 * .35 + epsilon,
@@ -36,8 +28,6 @@ population <- data.frame(
 
 
 # simulation --------------------------------------------------------------
-cores <- 8
-sims <- 500
 cl <- makeCluster(cores)
 clusterExport(cl, c("N", "n"))
 
@@ -51,7 +41,8 @@ opts <- list(progress = \(n) pb$tick())
 res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy"),
                .options.snow = opts) %dopar% {
-  flag_srs <- rbinom(n = N, size = 1, prob = n / N)
+  
+  flag_srs <- sample(1:N, n)
   
   flag_bd1 <- pmin(
     rbinom(n = 1:N, size = 1, prob = p1),
@@ -60,12 +51,13 @@ res <- foreach(k=1:sims, .combine = rbind,
     rbinom(n = 1:N, size = 1, prob = p2)
   )
   
-  base_w_bd <- N/sum(flag_bd1)
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
-                           data = subset(population, flag_srs == 1))
+                           data = population[flag_srs, ])
   
-  ## y1
-  glm1 <- nonprob(
+
+   # variable: y1 ------------------------------------------------------------
+
+  glm_y1 <- nonprob(
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
@@ -77,77 +69,49 @@ res <- foreach(k=1:sims, .combine = rbind,
   # NN 
   REP_nn <- TRUE
   KK_nn <- 0
-  nn_dyn <- NULL
+  nn_y1_dyn <- NULL
   while (REP_nn) {
-    se_prev <- if (is.null(nn_dyn)) Inf else nn_dyn$output$SE
-    nn_dyn <- nonprob(
+    se_prev <- if (is.null(nn_y1_dyn)) Inf else nn_y1_dyn$output$SE
+    nn_y1_dyn <- nonprob(
       outcome = y1 ~ x1 + x2,
       data = population[flag_bd1 == 1, , drop = FALSE],
       svydesign = sample_prob,
       method_outcome = "nn",
       pop_size = N,
-      family_outcome = "gaussian",
       control_outcome = controlOut(k = KK_nn + 1)
     )
-    REP_nn <- nn_dyn$output$SE < se_prev
+    REP_nn <- nn_y1_dyn$output$SE < se_prev
     KK_nn <- KK_nn + 1
   }
-  KK_nn <- KK_nn - 1
+
+  KK_nn_y1_dyn <- KK_nn - 1
   ## nn with dynamic KK_nn
-  nn_dyn <- nonprob(
+  nn_y1_dyn <- nonprob(
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "nn",
     pop_size = N,
-    family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK_nn)
+    control_outcome = controlOut(k = KK_nn_y1_dyn)
   )
   
-  ## nn with fixed KK_nn=4
-  nn_fixed <- nonprob(
+  ## nn with fixed KK_nn2
+  nn_y1_fixed <- nonprob(
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "nn",
     pop_size = N,
-    family_outcome = "gaussian",
     control_outcome = controlOut(k = KK_nn2)
   )
   
-  # PMM
-  while (REP_pmm) {
-    se_prev <- if (is.null(pmm1a_dyn)) Inf else pmm1a_dyn$output$SE
-    pmm1a_dyn <- nonprob(
-      outcome = y1 ~ x1 + x2,
-      data = population[flag_bd1 == 1, , drop = FALSE],
-      svydesign = sample_prob,
-      method_outcome = "pmm",
-      pop_size = N,
-      family_outcome = "gaussian",
-      control_outcome = controlOut(k = KK_pmm + 1, predictive_match = 1)
-    )
-    REP_pmm <- pmm1a_dyn$output$SE < se_prev
-    KK_pmm <- KK_pmm + 1
-  }
-  KK_pmm <- KK_pmm - 1
-  ## pmm A (yhat-y) with dynamic KK_pmm
-  pmm1a_dyn <- nonprob(
-    outcome = y1 ~ x1 + x2,
-    data = population[flag_bd1 == 1, , drop = FALSE],
-    svydesign = sample_prob,
-    method_outcome = "pmm",
-    pop_size = N,
-    family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK_pmm, predictive_match = 1)
-  )
-
+  # PMM_A -- yhat -yhat
   REP_pmm <- TRUE
   KK_pmm <- 0
-  pmm1b_dyn <- NULL
+  pmm_a_y1_dyn <- NULL
   while (REP_pmm) {
-    se_prev <- if (is.null(pmm1b_dyn)) Inf else pmm1b_dyn$output$SE
-    pmm1b_dyn <- nonprob(
+    se_prev <- if (is.null(pmm_a_y1_dyn)) Inf else pmm_a_y1_dyn$output$SE
+    pmm_a_y1_dyn <- nonprob(
       outcome = y1 ~ x1 + x2,
       data = population[flag_bd1 == 1, , drop = FALSE],
       svydesign = sample_prob,
@@ -157,24 +121,74 @@ res <- foreach(k=1:sims, .combine = rbind,
       control_outcome = controlOut(k = KK_pmm + 1, predictive_match = 2),
       control_inference = controlInf(pmm_exact_se = TRUE)
     )
-    REP_pmm <- pmm1b_dyn$output$SE < se_prev
+    REP_pmm <- pmm_a_y1_dyn$output$SE < se_prev
     KK_pmm <- KK_pmm + 1
   }
-  KK_pmm <- KK_pmm - 1
-
-  ## pmm B (yhat-yhat) with dynamic KK_pmm
-  pmm1b_dyn <- nonprob(
+  
+  KK_pmm_a_y1_dyn <- KK_pmm - 1
+  
+  ## pmm a (yhat-yhat) with dynamic KK_pmm
+  pmm_a_y1_dyn <- nonprob(
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
     pop_size = N,
     family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK_pmm, predictive_match = 2),
+    control_outcome = controlOut(k = KK_pmm_a_y1_dyn, predictive_match = 2),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-  ## pmm A (yhat-y) with fixed KK_pmm=4
-  pmm1a_fixed <- nonprob(
+  
+  ## pmm A (yhat-y) with fixed KK_pmm=5
+  pmm_a_y1_fixed <- nonprob(
+    outcome = y1 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK_pmm2, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE)
+  )
+  
+  # PMM_B -- yhat -y
+  REP_pmm <- TRUE
+  KK_pmm <- 0
+  pmm_b_y1_dyn <- NULL
+  
+  while (REP_pmm) {
+    se_prev <- if (is.null(pmm_b_y1_dyn)) Inf else pmm_b_y1_dyn$output$SE
+    pmm_b_y1_dyn <- nonprob(
+      outcome = y1 ~ x1 + x2,
+      data = population[flag_bd1 == 1, , drop = FALSE],
+      svydesign = sample_prob,
+      method_outcome = "pmm",
+      pop_size = N,
+      family_outcome = "gaussian",
+      control_outcome = controlOut(k = KK_pmm + 1, predictive_match = 1),
+      control_inference = controlInf(pmm_exact_se = TRUE)
+    )
+    REP_pmm <- pmm_b_y1_dyn$output$SE < se_prev
+    KK_pmm <- KK_pmm + 1
+  }
+  
+  KK_pmm_b_y1_dyn <- KK_pmm - 1
+  
+  ## pmm B (yhat-y) with dynamic KK_pmm
+  pmm_b_y1_dyn <- nonprob(
+    outcome = y1 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK_pmm_b_y1_dyn, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE)
+  )
+
+
+  ## pmm b (yhat-yhat) with fixed KK_pmm=5
+  pmm_b_y1_fixed <- nonprob(
     outcome = y1 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
@@ -185,9 +199,92 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
 
-  ## pmm B (yhat-yhat) with fixed KK_pmm=4
-  pmm1b_fixed <- nonprob(
-    outcome = y1 ~ x1 + x2,
+   # variable: y2 ------------------------------------------------------------
+
+  glm_y2 <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "glm",
+    pop_size = N,
+    family_outcome = "gaussian"
+  )
+  
+  # NN 
+  REP_nn <- TRUE
+  KK_nn <- 0
+  nn_y2_dyn <- NULL
+  while (REP_nn) {
+    se_prev <- if (is.null(nn_y2_dyn)) Inf else nn_y2_dyn$output$SE
+    nn_y2_dyn <- nonprob(
+      outcome = y2 ~ x1 + x2,
+      data = population[flag_bd1 == 1, , drop = FALSE],
+      svydesign = sample_prob,
+      method_outcome = "nn",
+      pop_size = N,
+      control_outcome = controlOut(k = KK_nn + 1)
+    )
+    REP_nn <- nn_y2_dyn$output$SE < se_prev
+    KK_nn <- KK_nn + 1
+  }
+  
+  KK_nn_y2_dyn <- KK_nn - 1
+  ## nn with dynamic KK_nn
+  nn_y2_dyn <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "nn",
+    pop_size = N,
+    control_outcome = controlOut(k = KK_nn_y2_dyn)
+  )
+  
+  ## nn with fixed KK_nn2
+  nn_y2_fixed <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "nn",
+    pop_size = N,
+    control_outcome = controlOut(k = KK_nn2)
+  )
+  
+  # PMM_A -- yhat -yhat
+  REP_pmm <- TRUE
+  KK_pmm <- 0
+  pmm_a_y2_dyn <- NULL
+  while (REP_pmm) {
+    se_prev <- if (is.null(pmm_a_y2_dyn)) Inf else pmm_a_y2_dyn$output$SE
+    pmm_a_y2_dyn <- nonprob(
+      outcome = y2 ~ x1 + x2,
+      data = population[flag_bd1 == 1, , drop = FALSE],
+      svydesign = sample_prob,
+      method_outcome = "pmm",
+      pop_size = N,
+      family_outcome = "gaussian",
+      control_outcome = controlOut(k = KK_pmm + 1, predictive_match = 2),
+      control_inference = controlInf(pmm_exact_se = TRUE)
+    )
+    REP_pmm <- pmm_a_y2_dyn$output$SE < se_prev
+    KK_pmm <- KK_pmm + 1
+  }
+  KK_pmm_a_y2_dyn <- KK_pmm - 1
+  
+  ## pmm b (yhat-yhat) with dynamic KK_pmm
+  pmm_a_y2_dyn <- nonprob(
+    outcome = y2 ~ x1 + x2,
+    data = population[flag_bd1 == 1, , drop = FALSE],
+    svydesign = sample_prob,
+    method_outcome = "pmm",
+    pop_size = N,
+    family_outcome = "gaussian",
+    control_outcome = controlOut(k = KK_pmm_a_y2_dyn, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE)
+  )
+  
+  ## pmm a (yhat-yhat) with fixed KK_pmm=5
+  pmm_a_y2_fixed <- nonprob(
+    outcome = y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
@@ -196,66 +293,15 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK_pmm2, predictive_match = 2),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-
-  ## y2
-  glm2 <- nonprob(
-    outcome = y2 ~ x1 + x2,
-    data = population[flag_bd1 == 1, , drop = FALSE],
-    svydesign = sample_prob,
-    method_outcome = "glm",
-    pop_size = N,
-    family_outcome = "gaussian"
-  )
-
-  ## NN
-  REP_nn <- TRUE
-  KK_nn <- 0
-  nn2_dyn <- NULL
-  while (REP_nn) {
-    se_prev <- if (is.null(nn2_dyn)) Inf else nn2_dyn$output$SE
-    nn2_dyn <- nonprob(
-      outcome = y2 ~ x1 + x2,
-      data = population[flag_bd1 == 1, , drop = FALSE],
-      svydesign = sample_prob,
-      method_outcome = "nn",
-      pop_size = N,
-      family_outcome = "gaussian",
-      control_outcome = controlOut(k = KK_nn + 1)
-    )
-    REP_nn <- nn2_dyn$output$SE < se_prev
-    KK_nn <- KK_nn + 1
-  }
-  KK_nn <- KK_nn - 1
-
-  ## nn with dynamic KK_nn
-  nn2_dyn <- nonprob(
-    outcome = y2 ~ x1 + x2,
-    data = population[flag_bd1 == 1, , drop = FALSE],
-    svydesign = sample_prob,
-    method_outcome = "nn",
-    pop_size = N,
-    family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK_nn)
-  )
   
-  ## nn with fixed KK_nn=4
-  nn2_fixed <- nonprob(
-    outcome = y2 ~ x1 + x2,
-    data = population[flag_bd1 == 1, , drop = FALSE],
-    svydesign = sample_prob,
-    method_outcome = "nn",
-    pop_size = N,
-    family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK_nn2)
-  )
-  
-  # PMM
+  # PMM_B -- yhat -y
   REP_pmm <- TRUE
   KK_pmm <- 0
-  pmm2a_dyn <- NULL
+  pmm_b_y2_dyn <- NULL
+  
   while (REP_pmm) {
-    se_prev <- if (is.null(pmm2a_dyn)) Inf else pmm2a_dyn$output$SE
-    pmm2a_dyn <- nonprob(
+    se_prev <- if (is.null(pmm_b_y2_dyn)) Inf else pmm_b_y2_dyn$output$SE
+    pmm_b_y2_dyn <- nonprob(
       outcome = y2 ~ x1 + x2,
       data = population[flag_bd1 == 1, , drop = FALSE],
       svydesign = sample_prob,
@@ -265,55 +311,26 @@ res <- foreach(k=1:sims, .combine = rbind,
       control_outcome = controlOut(k = KK_pmm + 1, predictive_match = 1),
       control_inference = controlInf(pmm_exact_se = TRUE)
     )
-    REP_pmm <- pmm2a_dyn$output$SE < se_prev
+    REP_pmm <- pmm_b_y2_dyn$output$SE < se_prev
     KK_pmm <- KK_pmm + 1
   }
-  KK_pmm <- KK_pmm - 1
-  ## pmm A (yhat-y) with dynamic k
-  pmm2a_dyn <- nonprob(
+  
+  KK_pmm_b_y2_dyn <- KK_pmm - 1
+  
+  ## pmm B (yhat-y) with dynamic KK_pmm
+  pmm_b_y2_dyn <- nonprob(
     outcome = y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "pmm",
     pop_size = N,
     family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK_pmm, predictive_match = 1),
+    control_outcome = controlOut(k = KK_pmm_b_y2_dyn, predictive_match = 1),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-
-  REP_pmm <- TRUE
-  KK_pmm <- 0
-  pmm2b_dyn <- NULL
-  while (REP_pmm) {
-    se_prev <- if (is.null(pmm2b_dyn)) Inf else pmm2b_dyn$output$SE
-    pmm2b_dyn <- nonprob(
-      outcome = y2 ~ x1 + x2,
-      data = population[flag_bd1 == 1, , drop = FALSE],
-      svydesign = sample_prob,
-      method_outcome = "pmm",
-      pop_size = N,
-      family_outcome = "gaussian",
-      control_outcome = controlOut(k = KK_pmm + 1, predictive_match = 2),
-      control_inference = controlInf(pmm_exact_se = TRUE)
-    )
-    REP_pmm <- pmm2b_dyn$output$SE < se_prev
-    KK_pmm <- KK_pmm + 1
-  }
-  KK_pmm <- KK_pmm - 1
-  ## pmm B (yhat-yhat) with dynamic k
-  pmm2b_dyn <- nonprob(
-    outcome = y2 ~ x1 + x2,
-    data = population[flag_bd1 == 1, , drop = FALSE],
-    svydesign = sample_prob,
-    method_outcome = "pmm",
-    pop_size = N,
-    family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK_pmm, predictive_match = 2),
-    control_inference = controlInf(pmm_exact_se = TRUE)
-  )
-
-  ## pmm A (yhat-y) with fixed k=4
-  pmm2a_fixed <- nonprob(
+  
+  ## pmm b (yhat-y) with fixed KK_pmm=5
+  pmm_b_y2_fixed <- nonprob(
     outcome = y2 ~ x1 + x2,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
@@ -323,74 +340,63 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK_pmm2, predictive_match = 1),
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
-
-  ## pmm B (yhat-yhat) with fixed k=4
-  pmm2b_fixed <- nonprob(
-    outcome = y2 ~ x1 + x2,
-    data = population[flag_bd1 == 1, , drop = FALSE],
-    svydesign = sample_prob,
-    method_outcome = "pmm",
-    pop_size = N,
-    family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK_pmm2, predictive_match = 2),
-    control_inference = controlInf(pmm_exact_se = TRUE)
-  )
   
+  # save results ------------------------------------------------------------
+
   # we need some extractors for this
   # quite unsightly that call
   
   data.frame(
     k = k,
     y = c("y1", "y2"),
-    trues = c(mean(population$y1), mean(population$y2)),
-    glm = c(glm1$output$mean, glm2$output$mean),
-    nn_dyn = c(nn_dyn$output$mean, nn2_dyn$output$mean),
-    nn_fix = c(nn_fixed$output$mean, nn2_fixed$output$mean),
-    pmmA_dyn = c(pmm1a_dyn$output$mean, pmm2a_dyn$output$mean),
-    pmmA_fix = c(pmm1a_fixed$output$mean, pmm2a_fixed$output$mean),
-    pmmB_dyn = c(pmm1b_dyn$output$mean, pmm2b_dyn$output$mean),
-    pmmB_fix = c(pmm1b_fixed$output$mean, pmm2b_fixed$output$mean),
+    trues      = c(mean(population$y1), mean(population$y2)),
+    
+    glm        = c(glm_y1$output$mean, glm_y2$output$mean),
+    
+    nn_dyn     = c(nn_y1_dyn$output$mean, nn_y2_dyn$output$mean),
+    nn_dyn_k   = c(KK_nn_y1_dyn, KK_nn_y2_dyn),
+    nn_fix     = c(nn_y1_fixed$output$mean, nn_y2_fixed$output$mean),
+    
+    pmmA_dyn   = c(pmm_a_y1_dyn$output$mean, pmm_a_y2_dyn$output$mean),
+    pmmA_dyn_k = c(KK_pmm_a_y1_dyn, KK_pmm_a_y2_dyn),
+    pmmA_fix   = c(pmm_a_y1_fixed$output$mean, pmm_a_y2_fixed$output$mean),
+    
+    pmmB_dyn   = c(pmm_b_y1_dyn$output$mean, pmm_b_y2_dyn$output$mean),
+    pmmB_dyn_k = c(KK_pmm_b_y1_dyn, KK_pmm_b_y2_dyn),
+    pmmB_fix   = c(pmm_b_y1_fixed$output$mean, pmm_b_y2_fixed$output$mean),
+    
     glm_ci = c(
-      glm1$confidence_interval[, 1] < mean(population$y1) &
-      mean(population$y1) < glm1$confidence_interval[, 2],
-      glm2$confidence_interval[, 1] < mean(population$y2) &
-      mean(population$y2) < glm2$confidence_interval[, 2]
+      glm_y1$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < glm_y1$confidence_interval[, 2],
+      glm_y2$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < glm_y2$confidence_interval[, 2]
     ),
+    
     nn_dyn_ci = c(
-      nn_dyn$confidence_interval[, 1] < mean(population$y1) & 
-        mean(population$y1) < nn_dyn$confidence_interval[, 2],
-      nn2_dyn$confidence_interval[, 1] < mean(population$y2) & 
-        mean(population$y2) < nn2_dyn$confidence_interval[, 2]
+      nn_y1_dyn$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < nn_y1_dyn$confidence_interval[, 2],
+      nn_y2_dyn$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < nn_y2_dyn$confidence_interval[, 2]
     ),
+    
     nn_fix_ci = c(
-      nn_fixed$confidence_interval[, 1] < mean(population$y1) & 
-        mean(population$y1) < nn_fixed$confidence_interval[, 2],
-      nn2_fixed$confidence_interval[, 1] < mean(population$y2) & 
-        mean(population$y2) < nn2_fixed$confidence_interval[, 2]
+      pmm_a_y1_fixed$confidence_interval[, 1] < mean(population$y1) &  mean(population$y1) < pmm_a_y1_fixed$confidence_interval[, 2],
+      pmm_a_y2_fixed$confidence_interval[, 1] < mean(population$y2) &  mean(population$y2) < pmm_a_y2_fixed$confidence_interval[, 2]
     ),
+    
     pmmA_dyn_ci = c(
-      pmm1a_dyn$confidence_interval[, 1] < mean(population$y1) &
-      mean(population$y1) < pmm1a_dyn$confidence_interval[, 2],
-      pmm2a_dyn$confidence_interval[, 1] < mean(population$y2) &
-      mean(population$y2) < pmm2a_dyn$confidence_interval[, 2]
+      pmm_a_y1_dyn$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmm_a_y1_dyn$confidence_interval[, 2],
+      pmm_a_y2_dyn$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmm_a_y2_dyn$confidence_interval[, 2]
     ),
+    
     pmmA_fix_ci = c(
-      pmm1a_fixed$confidence_interval[, 1] < mean(population$y1) &
-      mean(population$y1) < pmm1a_fixed$confidence_interval[, 2],
-      pmm2a_fixed$confidence_interval[, 1] < mean(population$y2) &
-      mean(population$y2) < pmm2a_fixed$confidence_interval[, 2]
+      pmm_a_y1_fixed$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmm_a_y1_fixed$confidence_interval[, 2],
+      pmm_a_y2_fixed$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmm_a_y2_fixed$confidence_interval[, 2]
     ),
+    
     pmmB_dyn_ci =  c(
-      pmm1b_dyn$confidence_interval[, 1] < mean(population$y1) &
-      mean(population$y1) < pmm1b_dyn$confidence_interval[, 2],
-      pmm2b_dyn$confidence_interval[, 1] < mean(population$y2) &
-      mean(population$y2) < pmm2b_dyn$confidence_interval[, 2]
+      pmm_b_y1_dyn$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmm_b_y1_dyn$confidence_interval[, 2],
+      pmm_b_y2_dyn$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmm_b_y2_dyn$confidence_interval[, 2]
     ),
     pmmB_fix_ci =  c(
-      pmm1b_fixed$confidence_interval[, 1] < mean(population$y1) &
-      mean(population$y1) < pmm1b_fixed$confidence_interval[, 2],
-      pmm2b_fixed$confidence_interval[, 1] < mean(population$y2) &
-      mean(population$y2) < pmm2b_fixed$confidence_interval[, 2]
+      pmm_b_y1_fixed$confidence_interval[, 1] < mean(population$y1) & mean(population$y1) < pmm_b_y1_fixed$confidence_interval[, 2],
+      pmm_b_y2_fixed$confidence_interval[, 1] < mean(population$y2) & mean(population$y2) < pmm_b_y2_fixed$confidence_interval[, 2]
     )
   )
 }
@@ -403,24 +409,9 @@ setDT(res)
 results_simulation1_process <- res |> melt(id.vars = 1:3)
 results_simulation1_process[, c("est", "sample", "ci"):=tstrsplit(variable, "_")]
 results_simulation1_process[sample == "ci", ci := "ci"]
+results_simulation1_process[ci == "k", k_sel := "k"]
 results_simulation1_process[sample == "ci", sample := NA]
+results_simulation1_process[ci == "k", ci := NA]
+
 saveRDS(results_simulation1_process, file = "results/sim-appen1-choose-k-results.RDS")
 
-## just for knn added
-# results_simulation1_process_old <- readRDS( "results/sim-appen1-choose-k-results.RDS")
-# results_simulation1_process <- rbind(results_simulation1_process_old, results_simulation1_process)
-# saveRDS(results_simulation1_process, "results/sim-appen1-choose-k-results.RDS")
-
-
-## stats
-tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues))*100, 
-                                                 se = sd(value)*100, 
-                                                 rmse = sqrt((mean(value)-mean(trues))^2 + var(value))*100), 
-                                    keyby=.(y, est,sample)] 
-
-tab2 <- results_simulation1_process[!is.na(ci), .(ci = mean(value)*100), 
-                                    keyby=.(y, est,sample)] 
-
-tab1[tab2, on = c("y", "est", "sample")] |>
-  xtable(digits = 4) |>
-  print.xtable(include.rownames = FALSE)

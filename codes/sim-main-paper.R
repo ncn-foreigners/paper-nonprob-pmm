@@ -1,17 +1,5 @@
-remotes::install_github("ncn-foreigners/nonprobsvy") 
-
-library(nonprobsvy)
-library(sampling)
-library(doSNOW)
-library(progress)
-library(foreach)
-library(data.table)
-library(xtable)
-
-
 # generate data -----------------------------------------------------------
 
-seed_for_sim <- 2024
 set.seed(seed_for_sim)
 
 ## pop and sample sizes
@@ -21,20 +9,26 @@ n_b <- 500
 n_a1 <- 0.7 * n_a
 n_a2 <- 0.3 * n_a
 ## generate data
-x <- rnorm(N, 2, 1)
-z <- x + max(x)
+x1 <- rnorm(N, 2, 1)
+x2 <- rnorm(N, 2, 1)
+x3 <- rnorm(N, 2, 1)
 e <- rnorm(N)
-y1 <- 1 + 2*x + e
-y2 <- 3 + x + 2*e
-y3 <- 2.5 + 0.5*x^2 +e
-strata <- x <= 2
-pop <- data.frame(x, z, pi_z = n_b*z/sum(z), y1, y2, y3, strata)
+y1 <- 1 + 2*x1 + e
+y2 <- -1 + x1 + x2 + x3 + e
+y3 <- -10 + x1^2 + x2^2 + x3^2 +e
+strata <- x1 <= 2
+pop <- data.frame(x1, x2, x3, y1, y2, y3, strata)
+
+y_formula_1 <- y1 ~ x1
+y_formula_2 <- y2 ~ x1 + x2 + x3
+y_formula_3_all <- y3 ~ I(x1^2) + I(x2^2) + I(x3^2)
+y_formula_3_nn <- y_formula_3_all
+y_formula_3_mis <- y3 ~ x1 + x2
 
 # main simulation ---------------------------------------------------------
 
 ## setup for parallel computation
-sims <- 500 ## about 20 min
-cores <- 8
+
 cl <- makeCluster(cores)
 registerDoSNOW(cl)
 pb <- progress_bar$new(format = "[:bar] :percent [Elapsed: :elapsedfull || Remaining: :eta]",
@@ -42,360 +36,616 @@ pb <- progress_bar$new(format = "[:bar] :percent [Elapsed: :elapsedfull || Remai
 opts <- list(progress = \(n) pb$tick())
 
 
-results_simulation1 <- foreach(k=1:sims, .combine = rbind,
-                               .packages = c("survey", "nonprobsvy"),
-                               .options.snow = opts) %dopar% {
+results_simulation1 <- foreach(
+  k=1:sims, .combine = rbind, .packages = c("survey", "nonprobsvy"), .options.snow = opts) %dopar% {
+    
+    ## nonprob sample   
+    pop1 <- subset(pop, strata == TRUE)
+    pop2 <- subset(pop, strata == FALSE)
+    sample_a_500 <- rbind(pop1[sample(1:nrow(pop1), n_a1[1]), ], pop2[sample(1:nrow(pop2), n_a2[1]), ])
+    sample_a_1000 <- rbind(pop1[sample(1:nrow(pop1), n_a1[2]), ], pop2[sample(1:nrow(pop2), n_a2[2]), ])
+    
+    ## sample prob
+    sample_b <- pop[sample(1:N, n_b), ]
+    sample_b$w_b <- N / n_b
+    svy_b <- svydesign(ids = ~ 1, weights = ~ w_b, data = sample_b)
+    
+    ## estimators
+    ## true
+    trues <- colMeans(pop[, c("y1", "y2", "y3")])
+    ## naive
+    naive_500 <- colMeans(sample_a_500[, c("y1", "y2", "y3")])
+    naive_1000 <- colMeans(sample_a_1000[, c("y1", "y2", "y3")])
+    
+    ## glm
+    mi_glm_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b)
+    mi_glm_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b)
+    mi_glm_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b)
+    mi_glm_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b)
+    
+    mi_glm_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b)
+    mi_glm_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b)
+    mi_glm_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b)
+    mi_glm_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b)
+    
+    ## nn1 (k=1)
+    
+    mi_nn1_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                             control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn1_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                             control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn1_500_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn1_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_inference = controlInf(pmm_exact_se = TRUE))
 
-  ## nonprob sample
-  pop1 <- subset(pop, strata == TRUE)
-  pop2 <- subset(pop, strata == FALSE)
-  sample_a_500 <- rbind(pop1[sample(1:nrow(pop1), n_a1[1]), ],
-                        pop2[sample(1:nrow(pop2), n_a2[1]), ])
-  sample_a_1000 <- rbind(pop1[sample(1:nrow(pop1), n_a1[2]),],
-                         pop2[sample(1:nrow(pop2), n_a2[2]),])
+    mi_nn1_500b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                             control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn1_500b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                             control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn1_500b_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn1_500b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    mi_nn1_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                              control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn1_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                              control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn1_1000_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn1_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_inference = controlInf(pmm_exact_se = TRUE))
 
-  ## sample prob
-  sample_b <- pop[sample(1:N, n_b),]
-  sample_b$w_b <- N/n_b
-  svy_b <- svydesign(ids= ~1, weights = ~ w_b, data = sample_b)
-  
-  ## estimators
-  ## true
-  trues <- colMeans(pop[, c("y1", "y2", "y3")])
-  ## naive
-  naive_500 <- colMeans(sample_a_500[, c("y1", "y2", "y3")])
-  naive_1000 <- colMeans(sample_a_1000[, c("y1", "y2", "y3")])
+    mi_nn1_1000b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                              control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn1_1000b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                              control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn1_1000b_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn1_1000b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    ## nn5 (k=5)
+    
+    mi_nn5_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                             control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn5_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                             control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn5_500_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn5_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE))
+   
+    mi_nn5_500b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                             control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn5_500b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                             control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn5_500b_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn5_500b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    mi_nn5_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                              control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn5_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                              control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn5_1000_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_nn5_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE))
+    
+    mi_nn5_1000b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                              control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn5_1000b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                              control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn5_1000b_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_nn5_1000b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_outcome = controlOut(k=5), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    ## pnn1a (k=1)
+    mi_pmm1a_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1a_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1a_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1a_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
 
-  # srs ---------------------------------------------------------------------
+    mi_pmm1a_500b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1a_500b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1a_500b_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1a_500b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    mi_pmm1a_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1a_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1a_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1a_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    
+    mi_pmm1a_1000b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1a_1000b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1a_1000b_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1a_1000b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    ## pmm5a (k=5)
+    
+    mi_pmm5a_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5a_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5a_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5a_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    
+    mi_pmm5a_500b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5a_500b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5a_500b_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5a_500b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    mi_pmm5a_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5a_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5a_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5a_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE))
+    
+    mi_pmm5a_1000b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5a_1000b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5a_1000b_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5a_1000b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 2), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    ## pnn1b (k=1)
+    
+    mi_pmm1b_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1b_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1b_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1b_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    
+    mi_pmm1b_500b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1b_500b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1b_500b_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1b_500b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    mi_pmm1b_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1b_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1b_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm1b_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    
+    mi_pmm1b_1000b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1b_1000b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1b_1000b_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm1b_1000b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    ## pmm5b (k=5)
+    
+    mi_pmm5b_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5b_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5b_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5b_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    
+    mi_pmm5b_500b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5b_500b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5b_500b_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5b_500b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+   
+    mi_pmm5b_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                 control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5b_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                 control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5b_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                     control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    mi_pmm5b_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                     control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE))
+    
+    mi_pmm5b_1000b_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5b_1000b_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5b_1000b_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    mi_pmm5b_1000b_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 1), control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
+    
+    
+    data.frame(
+      k        = k,
+      y        = c("y1", "y2", "y3_all", "y3_mis"),
+      trues    = trues[c(1,2,3,3)],
+      naive_500  = naive_500[c(1,2,3,3)],
+      naive_1000 = naive_1000[c(1,2,3,3)],
+      ## srs
+      glm_500    = c(mi_glm_500_y1$output$mean, mi_glm_500_y2$output$mean, mi_glm_500_y3_all$output$mean, mi_glm_500_y3_mis$output$mean),
+      glm_1000   = c(mi_glm_1000_y1$output$mean, mi_glm_1000_y2$output$mean, mi_glm_1000_y3_all$output$mean, mi_glm_1000_y3_mis$output$mean),
+      nn1_500    = c(mi_nn1_500_y1$output$mean, mi_nn1_500_y2$output$mean, mi_nn1_500_y3_all$output$mean, mi_nn1_500_y3_mis$output$mean),
+      nn1_1000   = c(mi_nn1_1000_y1$output$mean, mi_nn1_1000_y2$output$mean, mi_nn1_1000_y3_all$output$mean, mi_nn1_1000_y3_mis$output$mean),
+      nn5_500    = c(mi_nn5_500_y1$output$mean, mi_nn5_500_y2$output$mean, mi_nn5_500_y3_all$output$mean, mi_nn5_500_y3_mis$output$mean), 
+      nn5_1000   = c(mi_nn5_1000_y1$output$mean, mi_nn5_1000_y2$output$mean, mi_nn5_1000_y3_all$output$mean, mi_nn5_1000_y3_mis$output$mean),
+      pmm1a_500  = c(mi_pmm1a_500_y1$output$mean, mi_pmm1a_500_y2$output$mean, mi_pmm1a_500_y3_all$output$mean, mi_pmm1a_500_y3_mis$output$mean),
+      pmm1b_500  = c(mi_pmm1b_500_y1$output$mean, mi_pmm1b_500_y2$output$mean, mi_pmm1b_500_y3_all$output$mean, mi_pmm1b_500_y3_mis$output$mean),
+      pmm1a_1000 = c(mi_pmm1a_1000_y1$output$mean, mi_pmm1a_1000_y2$output$mean, mi_pmm1a_1000_y3_all$output$mean, mi_pmm1a_1000_y3_mis$output$mean),
+      pmm1b_1000 = c(mi_pmm1b_1000_y1$output$mean, mi_pmm1b_1000_y2$output$mean, mi_pmm1b_1000_y3_all$output$mean, mi_pmm1b_1000_y3_mis$output$mean),
+      pmm5a_500  = c(mi_pmm5a_500_y1$output$mean, mi_pmm5a_500_y2$output$mean, mi_pmm5a_500_y3_all$output$mean, mi_pmm5a_500_y3_mis$output$mean),
+      pmm5b_500  = c(mi_pmm5b_500_y1$output$mean, mi_pmm5b_500_y2$output$mean, mi_pmm5b_500_y3_all$output$mean, mi_pmm5b_500_y3_mis$output$mean),
+      pmm5a_1000 = c(mi_pmm5a_1000_y1$output$mean, mi_pmm5a_1000_y2$output$mean, mi_pmm5a_1000_y3_all$output$mean, mi_pmm5a_1000_y3_mis$output$mean),
+      pmm5b_1000 = c(mi_pmm5b_1000_y1$output$mean, mi_pmm5b_1000_y2$output$mean, mi_pmm5b_1000_y3_all$output$mean, mi_pmm5b_1000_y3_mis$output$mean),
+      
+      glm_500_ci    = c(mi_glm_500_y1$confidence_interval[1] < trues[1] & mi_glm_500_y1$confidence_interval[2] > trues[1], 
+                        mi_glm_500_y2$confidence_interval[1] < trues[2] & mi_glm_500_y2$confidence_interval[2] > trues[2],
+                        mi_glm_500_y3_all$confidence_interval[1] < trues[3] & mi_glm_500_y3_all$confidence_interval[2] > trues[3],
+                        mi_glm_500_y3_mis$confidence_interval[1] < trues[3] & mi_glm_500_y3_mis$confidence_interval[2] > trues[3]),
+      glm_1000_ci   = c(mi_glm_1000_y1$confidence_interval[1] < trues[1] & mi_glm_1000_y1$confidence_interval[2] > trues[1], 
+                        mi_glm_1000_y2$confidence_interval[1] < trues[2] & mi_glm_1000_y2$confidence_interval[2] > trues[2],
+                        mi_glm_1000_y3_all$confidence_interval[1] < trues[3] & mi_glm_1000_y3_all$confidence_interval[2] > trues[3],
+                        mi_glm_1000_y3_mis$confidence_interval[1] < trues[3] & mi_glm_1000_y3_mis$confidence_interval[2] > trues[3]),
+      nn1_500_ci    = c(mi_nn1_500_y1$confidence_interval[1] < trues[1] & mi_nn1_500_y1$confidence_interval[2] > trues[1], 
+                        mi_nn1_500_y2$confidence_interval[1] < trues[2] & mi_nn1_500_y2$confidence_interval[2] > trues[2],
+                        mi_nn1_500_y3_all$confidence_interval[1] < trues[3] & mi_nn1_500_y3_all$confidence_interval[2] > trues[3],
+                        mi_nn1_500_y3_mis$confidence_interval[1] < trues[3] & mi_nn1_500_y3_mis$confidence_interval[2] > trues[3]),
+      nn1_1000_ci   = c(mi_nn1_1000_y1$confidence_interval[1] < trues[1] & mi_nn1_1000_y1$confidence_interval[2] > trues[1], 
+                        mi_nn1_1000_y2$confidence_interval[1] < trues[2] & mi_nn1_1000_y2$confidence_interval[2] > trues[2],
+                        mi_nn1_1000_y3_all$confidence_interval[1] < trues[3] & mi_nn1_1000_y3_all$confidence_interval[2] > trues[3],
+                        mi_nn1_1000_y3_mis$confidence_interval[1] < trues[3] & mi_nn1_1000_y3_mis$confidence_interval[2] > trues[3]),
+      nn5_500_ci    = c(mi_nn5_500_y1$confidence_interval[1] < trues[1] & mi_nn5_500_y1$confidence_interval[2] > trues[1], 
+                        mi_nn5_500_y2$confidence_interval[1] < trues[2] & mi_nn5_500_y2$confidence_interval[2] > trues[2],
+                        mi_nn5_500_y3_all$confidence_interval[1] < trues[3] & mi_nn5_500_y3_all$confidence_interval[2] > trues[3],
+                        mi_nn5_500_y3_mis$confidence_interval[1] < trues[3] & mi_nn5_500_y3_mis$confidence_interval[2] > trues[3]),
+      nn5_1000_ci   = c(mi_nn5_1000_y1$confidence_interval[1] < trues[1] & mi_nn5_1000_y1$confidence_interval[2] > trues[1], 
+                        mi_nn5_1000_y2$confidence_interval[1] < trues[2] & mi_nn5_1000_y2$confidence_interval[2] > trues[2],
+                        mi_nn5_1000_y3_all$confidence_interval[1] < trues[3] & mi_nn5_1000_y3_all$confidence_interval[2] > trues[3],
+                        mi_nn5_1000_y3_mis$confidence_interval[1] < trues[3] & mi_nn5_1000_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1a_500_ci  = c(mi_pmm1a_500_y1$confidence_interval[1] < trues[1] & mi_pmm1a_500_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm1a_500_y2$confidence_interval[1] < trues[2] & mi_pmm1a_500_y2$confidence_interval[2] > trues[2],
+                        mi_pmm1a_500_y3_all$confidence_interval[1] < trues[3] & mi_pmm1a_500_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm1a_500_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1a_500_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1b_500_ci  = c(mi_pmm1b_500_y1$confidence_interval[1] < trues[1] & mi_pmm1b_500_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm1b_500_y2$confidence_interval[1] < trues[2] & mi_pmm1b_500_y2$confidence_interval[2] > trues[2],
+                        mi_pmm1b_500_y3_all$confidence_interval[1] < trues[3] & mi_pmm1b_500_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm1b_500_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1b_500_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1a_1000_ci = c(mi_pmm1a_1000_y1$confidence_interval[1] < trues[1] & mi_pmm1a_1000_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm1a_1000_y2$confidence_interval[1] < trues[2] & mi_pmm1a_1000_y2$confidence_interval[2] > trues[2],
+                        mi_pmm1a_1000_y3_all$confidence_interval[1] < trues[3] & mi_pmm1a_1000_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm1a_1000_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1a_1000_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1b_1000_ci = c(mi_pmm1b_1000_y1$confidence_interval[1] < trues[1] & mi_pmm1b_1000_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm1b_1000_y2$confidence_interval[1] < trues[2] & mi_pmm1b_1000_y2$confidence_interval[2] > trues[2],
+                        mi_pmm1b_1000_y3_all$confidence_interval[1] < trues[3] & mi_pmm1b_1000_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm1b_1000_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1b_1000_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5a_500_ci  = c(mi_pmm5a_500_y1$confidence_interval[1] < trues[1] & mi_pmm5a_500_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm5a_500_y2$confidence_interval[1] < trues[2] & mi_pmm5a_500_y2$confidence_interval[2] > trues[2],
+                        mi_pmm5a_500_y3_all$confidence_interval[1] < trues[3] & mi_pmm5a_500_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm5a_500_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5a_500_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5b_500_ci  = c(mi_pmm5b_500_y1$confidence_interval[1] < trues[1] & mi_pmm5b_500_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm5b_500_y2$confidence_interval[1] < trues[2] & mi_pmm5b_500_y2$confidence_interval[2] > trues[2],
+                        mi_pmm5b_500_y3_all$confidence_interval[1] < trues[3] & mi_pmm5b_500_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm5b_500_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5b_500_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5a_1000_ci = c(mi_pmm5a_1000_y1$confidence_interval[1] < trues[1] & mi_pmm5a_1000_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm5a_1000_y2$confidence_interval[1] < trues[2] & mi_pmm5a_1000_y2$confidence_interval[2] > trues[2],
+                        mi_pmm5a_1000_y3_all$confidence_interval[1] < trues[3] & mi_pmm5a_1000_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm5a_1000_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5a_1000_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5b_1000_ci = c(mi_pmm5b_1000_y1$confidence_interval[1] < trues[1] & mi_pmm5b_1000_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm5b_1000_y2$confidence_interval[1] < trues[2] & mi_pmm5b_1000_y2$confidence_interval[2] > trues[2],
+                        mi_pmm5b_1000_y3_all$confidence_interval[1] < trues[3] & mi_pmm5b_1000_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm5b_1000_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5b_1000_y3_mis$confidence_interval[2] > trues[3]),
+      
+      nn1_500b_ci    = c(mi_nn1_500b_y1$confidence_interval[1] < trues[1] & mi_nn1_500b_y1$confidence_interval[2] > trues[1], 
+                        mi_nn1_500b_y2$confidence_interval[1] < trues[2] & mi_nn1_500b_y2$confidence_interval[2] > trues[2],
+                        mi_nn1_500b_y3_all$confidence_interval[1] < trues[3] & mi_nn1_500b_y3_all$confidence_interval[2] > trues[3],
+                        mi_nn1_500b_y3_mis$confidence_interval[1] < trues[3] & mi_nn1_500b_y3_mis$confidence_interval[2] > trues[3]),
+      nn1_1000b_ci   = c(mi_nn1_1000b_y1$confidence_interval[1] < trues[1] & mi_nn1_1000b_y1$confidence_interval[2] > trues[1], 
+                        mi_nn1_1000b_y2$confidence_interval[1] < trues[2] & mi_nn1_1000b_y2$confidence_interval[2] > trues[2],
+                        mi_nn1_1000b_y3_all$confidence_interval[1] < trues[3] & mi_nn1_1000b_y3_all$confidence_interval[2] > trues[3],
+                        mi_nn1_1000b_y3_mis$confidence_interval[1] < trues[3] & mi_nn1_1000b_y3_mis$confidence_interval[2] > trues[3]),
+      nn5_500b_ci    = c(mi_nn5_500b_y1$confidence_interval[1] < trues[1] & mi_nn5_500b_y1$confidence_interval[2] > trues[1], 
+                        mi_nn5_500b_y2$confidence_interval[1] < trues[2] & mi_nn5_500b_y2$confidence_interval[2] > trues[2],
+                        mi_nn5_500b_y3_all$confidence_interval[1] < trues[3] & mi_nn5_500b_y3_all$confidence_interval[2] > trues[3],
+                        mi_nn5_500b_y3_mis$confidence_interval[1] < trues[3] & mi_nn5_500b_y3_mis$confidence_interval[2] > trues[3]),
+      nn5_1000b_ci   = c(mi_nn5_1000b_y1$confidence_interval[1] < trues[1] & mi_nn5_1000b_y1$confidence_interval[2] > trues[1], 
+                        mi_nn5_1000b_y2$confidence_interval[1] < trues[2] & mi_nn5_1000b_y2$confidence_interval[2] > trues[2],
+                        mi_nn5_1000b_y3_all$confidence_interval[1] < trues[3] & mi_nn5_1000b_y3_all$confidence_interval[2] > trues[3],
+                        mi_nn5_1000b_y3_mis$confidence_interval[1] < trues[3] & mi_nn5_1000b_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1a_500b_ci  = c(mi_pmm1a_500b_y1$confidence_interval[1] < trues[1] & mi_pmm1a_500b_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm1a_500b_y2$confidence_interval[1] < trues[2] & mi_pmm1a_500b_y2$confidence_interval[2] > trues[2],
+                        mi_pmm1a_500b_y3_all$confidence_interval[1] < trues[3] & mi_pmm1a_500b_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm1a_500b_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1a_500b_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1b_500b_ci  = c(mi_pmm1b_500b_y1$confidence_interval[1] < trues[1] & mi_pmm1b_500b_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm1b_500b_y2$confidence_interval[1] < trues[2] & mi_pmm1b_500b_y2$confidence_interval[2] > trues[2],
+                        mi_pmm1b_500b_y3_all$confidence_interval[1] < trues[3] & mi_pmm1b_500b_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm1b_500b_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1b_500b_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1a_1000b_ci = c(mi_pmm1a_1000b_y1$confidence_interval[1] < trues[1] & mi_pmm1a_1000b_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm1a_1000b_y2$confidence_interval[1] < trues[2] & mi_pmm1a_1000b_y2$confidence_interval[2] > trues[2],
+                        mi_pmm1a_1000b_y3_all$confidence_interval[1] < trues[3] & mi_pmm1a_1000b_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm1a_1000b_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1a_1000b_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1b_1000b_ci = c(mi_pmm1b_1000b_y1$confidence_interval[1] < trues[1] & mi_pmm1b_1000b_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm1b_1000b_y2$confidence_interval[1] < trues[2] & mi_pmm1b_1000b_y2$confidence_interval[2] > trues[2],
+                        mi_pmm1b_1000b_y3_all$confidence_interval[1] < trues[3] & mi_pmm1b_1000b_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm1b_1000b_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1b_1000b_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5a_500b_ci  = c(mi_pmm5a_500b_y1$confidence_interval[1] < trues[1] & mi_pmm5a_500b_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm5a_500b_y2$confidence_interval[1] < trues[2] & mi_pmm5a_500b_y2$confidence_interval[2] > trues[2],
+                        mi_pmm5a_500b_y3_all$confidence_interval[1] < trues[3] & mi_pmm5a_500b_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm5a_500b_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5a_500b_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5b_500b_ci  = c(mi_pmm5b_500b_y1$confidence_interval[1] < trues[1] & mi_pmm5b_500b_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm5b_500b_y2$confidence_interval[1] < trues[2] & mi_pmm5b_500b_y2$confidence_interval[2] > trues[2],
+                        mi_pmm5b_500b_y3_all$confidence_interval[1] < trues[3] & mi_pmm5b_500b_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm5b_500b_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5b_500b_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5a_1000b_ci = c(mi_pmm5a_1000b_y1$confidence_interval[1] < trues[1] & mi_pmm5a_1000b_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm5a_1000b_y2$confidence_interval[1] < trues[2] & mi_pmm5a_1000b_y2$confidence_interval[2] > trues[2],
+                        mi_pmm5a_1000b_y3_all$confidence_interval[1] < trues[3] & mi_pmm5a_1000b_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm5a_1000b_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5a_1000b_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5b_1000b_ci = c(mi_pmm5b_1000b_y1$confidence_interval[1] < trues[1] & mi_pmm5b_1000b_y1$confidence_interval[2] > trues[1], 
+                        mi_pmm5b_1000b_y2$confidence_interval[1] < trues[2] & mi_pmm5b_1000b_y2$confidence_interval[2] > trues[2],
+                        mi_pmm5b_1000b_y3_all$confidence_interval[1] < trues[3] & mi_pmm5b_1000b_y3_all$confidence_interval[2] > trues[3],
+                        mi_pmm5b_1000b_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5b_1000b_y3_mis$confidence_interval[2] > trues[3])
+      
+    )
 
-  ## glm
-  mi_glm_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                        se = TRUE, family_outcome = "gaussian", method_outcome = "glm")
-
-  mi_glm_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                         se = TRUE, family_outcome = "gaussian", method_outcome = "glm")
-  
-  ## nn
-  mi_nn_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                        se = TRUE, family_outcome = "gaussian", method_outcome = "nn",
-                        control_outcome = controlOut(k = 1))
-  
-  mi_nn_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                         se = TRUE, family_outcome = "gaussian", method_outcome = "nn",
-                         control_outcome = controlOut(k = 1))
-
-  ## hat-hat
-  mi_pmm1b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 1, predictive_match = 2),
-                          control_inference = controlInf(pmm_exact_se = TRUE))
-  ## hat-y
-  mi_pmm1a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 1, predictive_match = 1),
-                          control_inference = controlInf(pmm_exact_se = TRUE))
-  ## hat-hat
-  mi_pmm1b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 1, predictive_match = 2),
-                          control_inference = controlInf(pmm_exact_se = TRUE))
-  ## hat-y
-  mi_pmm1a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 1, predictive_match = 1),
-                          control_inference = controlInf(pmm_exact_se = TRUE))
-
-  ## nn 
-  mi_nn5_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                       se = TRUE, family_outcome = "gaussian", method_outcome = "nn",
-                       control_outcome = controlOut(k = 5))
-  
-  mi_nn5_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                        se = TRUE, family_outcome = "gaussian", method_outcome = "nn",
-                        control_outcome = controlOut(k = 5))
-  
-  ## hat-hat
-  mi_pmm5b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 5, predictive_match = 2),
-                          control_inference = controlInf(pmm_exact_se = TRUE))
-  ## hat-y
-  mi_pmm5a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 5, predictive_match = 1),
-                          control_inference = controlInf(pmm_exact_se = TRUE))
-  ## hat-hat
-  mi_pmm5b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 5, predictive_match = 2),
-                           control_inference = controlInf(pmm_exact_se = TRUE))
-  # hat-y
-  mi_pmm5a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 5, predictive_match = 1),
-                           control_inference = controlInf(pmm_exact_se = TRUE))
-
-
-  # srs bootstrap -----------------------------------------------------------
-  ## hat-hat
-  mi_pmm1b_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 1, predictive_match = 2),
-                          control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
-  ## hat-y
-  mi_pmm1a_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 1, predictive_match = 1),
-                          control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
-  ## hat-hat
-  mi_pmm1b_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 1, predictive_match = 2),
-                           control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
-  ## hat-y
-  mi_pmm1a_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 1, predictive_match = 1),
-                           control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
-
-  ## hat-hat
-  mi_pmm5b_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 5, predictive_match = 2),
-                          control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
-  ## hat-y
-  mi_pmm5a_500_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 5, predictive_match = 1),
-                          control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
-  ## hat-hat
-  mi_pmm5b_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 5, predictive_match = 2),
-                           control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
-  ## hat-y
-  mi_pmm5a_1000_b <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 5, predictive_match = 1),
-                           control_inference = controlInf(pmm_exact_se = TRUE, var_method = "bootstrap"))
-
-
-  data.frame(
-    k        = k,
-    y        = c("y1","y2", "y3"),
-    trues    = trues,
-    naive_5  = naive_500,
-    naive_10 = naive_1000,
-    ## srs
-    glm_5    = mi_glm_500$output$mean, glm_10=mi_glm_1000$output$mean,
-    nn_1_5    = mi_nn_500$output$mean, nn_1_10=mi_nn_1000$output$mean,
-    nn_5_5    = mi_nn5_500$output$mean, nn_5_10=mi_nn5_1000$output$mean,
-    pmm1a_5  = mi_pmm1a_500$output$mean, pmm1b_5=mi_pmm1b_500$output$mean,
-    pmm1a_10 = mi_pmm1a_1000$output$mean,pmm1b_10=mi_pmm1b_1000$output$mean,
-    pmm5a_5  = mi_pmm5a_500$output$mean, pmm5b_5=mi_pmm5b_500$output$mean,
-    pmm5a_10 = mi_pmm5a_1000$output$mean,pmm5b_10=mi_pmm5b_1000$output$mean,
-    ## srs ci
-    glm_500_ci    = as.numeric(mi_glm_500$confidence_interval[1]    < trues &
-                               mi_glm_500$confidence_interval[2]    > trues),
-    glm_1000_ci   = as.numeric(mi_glm_1000$confidence_interval[1]   < trues &
-                               mi_glm_1000$confidence_interval[2]   > trues),
-    nn1_500_ci    = as.numeric(mi_nn_500$confidence_interval[1]    < trues & 
-                                 mi_nn_500$confidence_interval[2]    > trues),
-    nn1_1000_ci   = as.numeric(mi_nn_1000$confidence_interval[1]   < trues & 
-                                 mi_nn_1000$confidence_interval[2]   > trues),
-    nn5_500_ci    = as.numeric(mi_nn5_500$confidence_interval[1]    < trues & 
-                                 mi_nn5_500$confidence_interval[2]    > trues),
-    nn5_1000_ci   = as.numeric(mi_nn5_1000$confidence_interval[1]   < trues & 
-                                 mi_nn5_1000$confidence_interval[2]   > trues),
-    pmm1a_500_ci  = as.numeric(mi_pmm1a_500$confidence_interval[1]  < trues &
-                               mi_pmm1a_500$confidence_interval[2]  > trues),
-    pmm1a_1000_ci = as.numeric(mi_pmm1a_1000$confidence_interval[1] < trues &
-                               mi_pmm1a_1000$confidence_interval[2] > trues),
-    pmm1b_500_ci  = as.numeric(mi_pmm1b_500$confidence_interval[1]  < trues &
-                               mi_pmm1b_500$confidence_interval[2]  > trues),
-    pmm1b_1000_ci = as.numeric(mi_pmm1b_1000$confidence_interval[1] < trues &
-                               mi_pmm1b_1000$confidence_interval[2] > trues),
-    pmm5a_500_ci  = as.numeric(mi_pmm5a_500$confidence_interval[1]  < trues &
-                               mi_pmm5a_500$confidence_interval[2]  > trues),
-    pmm5a_1000_ci = as.numeric(mi_pmm5a_1000$confidence_interval[1] < trues &
-                               mi_pmm5a_1000$confidence_interval[2] > trues),
-    pmm5b_500_ci  = as.numeric(mi_pmm5b_500$confidence_interval[1]  < trues &
-                               mi_pmm5b_500$confidence_interval[2]  > trues),
-    pmm5b_1000_ci = as.numeric(mi_pmm5b_1000$confidence_interval[1] < trues &
-                               mi_pmm5b_1000$confidence_interval[2] > trues),
-    ## bootstrap srs
-    pmm1a_500b_ci = as.numeric(mi_pmm1a_500_b$confidence_interval[1]   < trues &
-                               mi_pmm1a_500_b$confidence_interval[2]   > trues),
-    pmm1a_1000b_ci = as.numeric(mi_pmm1a_1000_b$confidence_interval[1] < trues &
-                                mi_pmm1a_1000_b$confidence_interval[2] > trues),
-    pmm1b_500b_ci = as.numeric(mi_pmm1b_500_b$confidence_interval[1]   < trues &
-                               mi_pmm1b_500_b$confidence_interval[2]   > trues),
-    pmm1b_1000b_ci = as.numeric(mi_pmm1b_1000_b$confidence_interval[1] < trues &
-                                mi_pmm1b_1000_b$confidence_interval[2] > trues),
-    pmm5a_500b_ci = as.numeric(mi_pmm5a_500_b$confidence_interval[1]   < trues &
-                               mi_pmm5a_500_b$confidence_interval[2]   > trues),
-    pmm5a_1000b_ci = as.numeric(mi_pmm5a_1000_b$confidence_interval[1] < trues &
-                                mi_pmm5a_1000_b$confidence_interval[2] > trues),
-    pmm5b_500b_ci = as.numeric(mi_pmm5b_500_b$confidence_interval[1]   < trues &
-                               mi_pmm5b_500_b$confidence_interval[2]   > trues),
-    pmm5b_1000b_ci = as.numeric(mi_pmm5b_1000_b$confidence_interval[1] < trues &
-                                mi_pmm5b_1000_b$confidence_interval[2] > trues)
-  )
 }
 
-results_simulation1_no_v2 <- foreach(k=1:sims, .combine = rbind,
-                               .packages = c("survey", "nonprobsvy"),
-                               .options.snow = opts) %dopar% {
-  ## nonprob sample
-  pop1 <- subset(pop, strata == TRUE)
-  pop2 <- subset(pop, strata == FALSE)
-  sample_a_500 <- rbind(pop1[sample(1:nrow(pop1), n_a1[1]), ],
-                        pop2[sample(1:nrow(pop2), n_a2[1]), ])
-  sample_a_1000 <- rbind(pop1[sample(1:nrow(pop1), n_a1[2]),],
-                         pop2[sample(1:nrow(pop2), n_a2[2]),])
-  
-  ## sample prob 
-  sample_b <- pop[sample(1:N, n_b),]
-  sample_b$w_b <- N/n_b
-  svy_b <- svydesign(ids= ~1, weights = ~ w_b, data = sample_b)
-  
-  ## estimators
-  ## true
-  trues <- colMeans(pop[, c("y1", "y2", "y3")])
-  ## naive
-  naive_500 <- colMeans(sample_a_500[, c("y1", "y2", "y3")])
-  naive_1000 <- colMeans(sample_a_1000[, c("y1", "y2", "y3")])
-  
-  
-  # srs ---------------------------------------------------------------------
-  
-  ## glm
-  mi_glm_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                        se = TRUE, family_outcome = "gaussian", method_outcome = "glm")
-
-  mi_glm_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                         se = TRUE, family_outcome = "gaussian", method_outcome = "glm")
-  
-  # nn
-  mi_nn_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                        se = TRUE, family_outcome = "gaussian", method_outcome = "nn",
-                       control_outcome = controlOut(k = 1))
-  
-  mi_nn_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                         se = TRUE, family_outcome = "gaussian", method_outcome = "nn",
-                        control_outcome = controlOut(k = 1))
-  
-  ## hat-hat
-  mi_pmm1b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 1, predictive_match = 2),
-                          control_inference = controlInf(pmm_exact_se = FALSE))
-  ## hat-y
-  mi_pmm1a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 1, predictive_match = 1),
-                          control_inference = controlInf(pmm_exact_se = FALSE))
-  ## hat-hat
-  mi_pmm1b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 1, predictive_match = 2),
-                           control_inference = controlInf(pmm_exact_se = FALSE))
-  ## hat-y
-  mi_pmm1a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 1, predictive_match = 1),
-                           control_inference = controlInf(pmm_exact_se = FALSE))
-
-  # hat-hat
-  mi_pmm5b_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 5, predictive_match = 2),
-                          control_inference = controlInf(pmm_exact_se = FALSE))
-  ## hat-y
-  mi_pmm5a_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                          se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                          control_outcome = controlOut(k = 5, predictive_match = 1),
-                          control_inference = controlInf(pmm_exact_se = FALSE))
-  ## hat-hat
-  mi_pmm5b_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 5, predictive_match = 2),
-                           control_inference = controlInf(pmm_exact_se = FALSE))
-  ## hat-y
-  mi_pmm5a_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                           se = TRUE, family_outcome = "gaussian", method_outcome = "pmm",
-                           control_outcome = controlOut(k = 5, predictive_match = 1),
-                           control_inference = controlInf(pmm_exact_se = FALSE))
-  # nn 5
-  mi_nn_5_500 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_500, svydesign = svy_b,
-                       se = TRUE, family_outcome = "gaussian", method_outcome = "nn",
-                       control_outcome = controlOut(k = 5))
-  
-  mi_nn_5_1000 <- nonprob(outcome = y1 + y2 + y3 ~ x, data = sample_a_1000, svydesign = svy_b,
-                        se = TRUE, family_outcome = "gaussian", method_outcome = "nn",
-                        control_outcome = controlOut(k = 5))
-  
-  
+results_simulation1_no_v2 <- foreach(
+  k=1:sims, .combine = rbind, .packages = c("survey", "nonprobsvy"), .options.snow = opts) %dopar% {
+ 
+    ## nonprob sample   
+    pop1 <- subset(pop, strata == TRUE)
+    pop2 <- subset(pop, strata == FALSE)
+    sample_a_500 <- rbind(pop1[sample(1:nrow(pop1), n_a1[1]), ], pop2[sample(1:nrow(pop2), n_a2[1]), ])
+    sample_a_1000 <- rbind(pop1[sample(1:nrow(pop1), n_a1[2]), ], pop2[sample(1:nrow(pop2), n_a2[2]), ])
+    
+    ## sample prob
+    sample_b <- pop[sample(1:N, n_b), ]
+    sample_b$w_b <- N / n_b
+    svy_b <- svydesign(ids = ~ 1, weights = ~ w_b, data = sample_b)
+    
+    ## estimators
+    ## true
+    trues <- colMeans(pop[, c("y1", "y2", "y3")])
+    ## naive
+    naive_500 <- colMeans(sample_a_500[, c("y1", "y2", "y3")])
+    naive_1000 <- colMeans(sample_a_1000[, c("y1", "y2", "y3")])
+    
+    ## glm
+    mi_glm_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b)
+    mi_glm_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b)
+    mi_glm_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b)
+    mi_glm_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b)
+    
+    mi_glm_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b)
+    mi_glm_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b)
+    mi_glm_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b)
+    mi_glm_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b)
+    
+    ## nn1 (k=1)
+    
+    mi_nn1_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "nn")
+    mi_nn1_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "nn")
+    mi_nn1_500_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_500, svydesign = svy_b, method_outcome = "nn")
+    mi_nn1_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "nn")
+    
+    mi_nn1_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn")
+    mi_nn1_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn")
+    mi_nn1_1000_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn")
+    mi_nn1_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn")
+    
+    ## nn5 (k=5)
+    
+    mi_nn5_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", control_outcome = controlOut(k=5))
+    mi_nn5_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", control_outcome = controlOut(k=5))
+    mi_nn5_500_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_outcome = controlOut(k=5))
+    mi_nn5_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "nn", 
+                                 control_outcome = controlOut(k=5))
+    
+    mi_nn5_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", control_outcome = controlOut(k=5))
+    mi_nn5_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", control_outcome = controlOut(k=5))
+    mi_nn5_1000_y3_all <- nonprob(outcome = y_formula_3_nn, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_outcome = controlOut(k=5))
+    mi_nn5_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "nn", 
+                                  control_outcome = controlOut(k=5))
+    
+    ## pnn1a (k=1)
+    mi_pmm1a_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 2))
+    mi_pmm1a_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 2))
+    mi_pmm1a_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 2))
+    mi_pmm1a_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 2))
+    
+    mi_pmm1a_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 2))
+    mi_pmm1a_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 2))
+    mi_pmm1a_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 2))
+    mi_pmm1a_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 2))
+    
+    ## pmm5a (k=5)
+    
+    mi_pmm5a_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 2))
+    mi_pmm5a_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 2))
+    mi_pmm5a_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 2))
+    mi_pmm5a_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 2))
+    
+    mi_pmm5a_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 2))
+    mi_pmm5a_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 2))
+    mi_pmm5a_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 2))
+    mi_pmm5a_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 2))
+    
+    ## pnn1b (k=1)
+    
+    mi_pmm1b_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 1))
+    mi_pmm1b_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(predictive_match = 1))
+    mi_pmm1b_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 1))
+    mi_pmm1b_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(predictive_match = 1))
+    
+    mi_pmm1b_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 1))
+    mi_pmm1b_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(predictive_match = 1))
+    mi_pmm1b_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 1))
+    mi_pmm1b_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(predictive_match = 1))
+    
+    ## pmm5b (k=5)
+    
+    mi_pmm5b_500_y1 <- nonprob(outcome = y_formula_1, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 1))
+    mi_pmm5b_500_y2 <- nonprob(outcome = y_formula_2, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                               control_outcome = controlOut(k=5, predictive_match = 1))
+    mi_pmm5b_500_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 1))
+    mi_pmm5b_500_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_500, svydesign = svy_b, method_outcome = "pmm", 
+                                   control_outcome = controlOut(k=5, predictive_match = 1))
+    
+    mi_pmm5b_1000_y1 <- nonprob(outcome = y_formula_1, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 1))
+    mi_pmm5b_1000_y2 <- nonprob(outcome = y_formula_2, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                control_outcome = controlOut(k=5, predictive_match = 1))
+    mi_pmm5b_1000_y3_all <- nonprob(outcome = y_formula_3_all, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 1))
+    mi_pmm5b_1000_y3_mis <- nonprob(outcome = y_formula_3_mis, data = sample_a_1000, svydesign = svy_b, method_outcome = "pmm", 
+                                    control_outcome = controlOut(k=5, predictive_match = 1))
+    
+    
   data.frame(
     k        = k,
-    y        = c("y1","y2", "y3"),
-    trues    = trues,
-    naive_5  = naive_500,
-    naive_10 = naive_1000,
-    # srs
-    glm_5    = mi_glm_500$output$mean, glm_10=mi_glm_1000$output$mean,
-    nn1_5    = mi_nn_500$output$mean, nn1_10=mi_nn_1000$output$mean,
-    nn5_5    = mi_nn_5_500$output$mean, nn5_10=mi_nn_5_1000$output$mean,
-    pmm1a_5  = mi_pmm1a_500$output$mean, pmm1b_5=mi_pmm1b_500$output$mean,
-    pmm1a_10 = mi_pmm1a_1000$output$mean,pmm1b_10=mi_pmm1b_1000$output$mean,
-    pmm5a_5  = mi_pmm5a_500$output$mean, pmm5b_5=mi_pmm5b_500$output$mean,
-    pmm5a_10 = mi_pmm5a_1000$output$mean,pmm5b_10=mi_pmm5b_1000$output$mean,
+    y        = c("y1", "y2", "y3_all", "y3_mis"),
+    trues    = trues[c(1,2,3,3)],
+    naive_500  = naive_500[c(1,2,3,3)],
+    naive_1000 = naive_1000[c(1,2,3,3)],
+    ## srs
+    glm_500    = c(mi_glm_500_y1$output$mean, mi_glm_500_y2$output$mean, mi_glm_500_y3_all$output$mean, mi_glm_500_y3_mis$output$mean),
+    glm_1000   = c(mi_glm_1000_y1$output$mean, mi_glm_1000_y2$output$mean, mi_glm_1000_y3_all$output$mean, mi_glm_1000_y3_mis$output$mean),
+    nn1_500    = c(mi_nn1_500_y1$output$mean, mi_nn1_500_y2$output$mean, mi_nn1_500_y3_all$output$mean, mi_nn1_500_y3_mis$output$mean),
+    nn1_1000   = c(mi_nn1_1000_y1$output$mean, mi_nn1_1000_y2$output$mean, mi_nn1_1000_y3_all$output$mean, mi_nn1_1000_y3_mis$output$mean),
+    nn5_500    = c(mi_nn5_500_y1$output$mean, mi_nn5_500_y2$output$mean, mi_nn5_500_y3_all$output$mean, mi_nn5_500_y3_mis$output$mean), 
+    nn5_1000   = c(mi_nn5_1000_y1$output$mean, mi_nn5_1000_y2$output$mean, mi_nn5_1000_y3_all$output$mean, mi_nn5_1000_y3_mis$output$mean),
+    pmm1a_500  = c(mi_pmm1a_500_y1$output$mean, mi_pmm1a_500_y2$output$mean, mi_pmm1a_500_y3_all$output$mean, mi_pmm1a_500_y3_mis$output$mean),
+    pmm1b_500  = c(mi_pmm1b_500_y1$output$mean, mi_pmm1b_500_y2$output$mean, mi_pmm1b_500_y3_all$output$mean, mi_pmm1b_500_y3_mis$output$mean),
+    pmm1a_1000 = c(mi_pmm1a_1000_y1$output$mean, mi_pmm1a_1000_y2$output$mean, mi_pmm1a_1000_y3_all$output$mean, mi_pmm1a_1000_y3_mis$output$mean),
+    pmm1b_1000 = c(mi_pmm1b_1000_y1$output$mean, mi_pmm1b_1000_y2$output$mean, mi_pmm1b_1000_y3_all$output$mean, mi_pmm1b_1000_y3_mis$output$mean),
+    pmm5a_500  = c(mi_pmm5a_500_y1$output$mean, mi_pmm5a_500_y2$output$mean, mi_pmm5a_500_y3_all$output$mean, mi_pmm5a_500_y3_mis$output$mean),
+    pmm5b_500  = c(mi_pmm5b_500_y1$output$mean, mi_pmm5b_500_y2$output$mean, mi_pmm5b_500_y3_all$output$mean, mi_pmm5b_500_y3_mis$output$mean),
+    pmm5a_1000 = c(mi_pmm5a_1000_y1$output$mean, mi_pmm5a_1000_y2$output$mean, mi_pmm5a_1000_y3_all$output$mean, mi_pmm5a_1000_y3_mis$output$mean),
+    pmm5b_1000 = c(mi_pmm5b_1000_y1$output$mean, mi_pmm5b_1000_y2$output$mean, mi_pmm5b_1000_y3_all$output$mean, mi_pmm5b_1000_y3_mis$output$mean),
     # srs ci
-    glm_500_ci    = as.numeric(mi_glm_500$confidence_interval[1]    < trues &
-                               mi_glm_500$confidence_interval[2]    > trues),
-    glm_1000_ci   = as.numeric(mi_glm_1000$confidence_interval[1]   < trues &
-                               mi_glm_1000$confidence_interval[2]   > trues),
-    nn1_500_ci    = as.numeric(mi_nn_500$confidence_interval[1]    < trues & 
-                                 mi_nn_500$confidence_interval[2]    > trues),
-    nn1_1000_ci   = as.numeric(mi_nn_1000$confidence_interval[1]   < trues & 
-                                 mi_nn_1000$confidence_interval[2]   > trues),
-    nn5_500_ci    = as.numeric(mi_nn5_500$confidence_interval[1]    < trues & 
-                                 mi_nn5_500$confidence_interval[2]    > trues),
-    nn5_1000_ci   = as.numeric(mi_nn5_1000$confidence_interval[1]   < trues & 
-                                 mi_nn5_1000$confidence_interval[2]   > trues),
-    pmm1a_500_ci  = as.numeric(mi_pmm1a_500$confidence_interval[1]  < trues &
-                               mi_pmm1a_500$confidence_interval[2]  > trues),
-    pmm1a_1000_ci = as.numeric(mi_pmm1a_1000$confidence_interval[1] < trues &
-                               mi_pmm1a_1000$confidence_interval[2] > trues),
-    pmm1b_500_ci  = as.numeric(mi_pmm1b_500$confidence_interval[1]  < trues &
-                               mi_pmm1b_500$confidence_interval[2]  > trues),
-    pmm1b_1000_ci = as.numeric(mi_pmm1b_1000$confidence_interval[1] < trues &
-                               mi_pmm1b_1000$confidence_interval[2] > trues),
-    pmm5a_500_ci  = as.numeric(mi_pmm5a_500$confidence_interval[1]  < trues &
-                               mi_pmm5a_500$confidence_interval[2]  > trues),
-    pmm5a_1000_ci = as.numeric(mi_pmm5a_1000$confidence_interval[1] < trues &
-                               mi_pmm5a_1000$confidence_interval[2] > trues),
-    pmm5b_500_ci  = as.numeric(mi_pmm5b_500$confidence_interval[1]  < trues &
-                               mi_pmm5b_500$confidence_interval[2]  > trues),
-    pmm5b_1000_ci = as.numeric(mi_pmm5b_1000$confidence_interval[1] < trues &
-                               mi_pmm5b_1000$confidence_interval[2] > trues),
-    # bootstrap srs
-    pmm1a_500b_ci = as.numeric(mi_pmm1a_500_b$confidence_interval[1]   < trues &
-                               mi_pmm1a_500_b$confidence_interval[2]   > trues),
-    pmm1a_1000b_ci = as.numeric(mi_pmm1a_1000_b$confidence_interval[1] < trues &
-                                mi_pmm1a_1000_b$confidence_interval[2] > trues),
-    pmm1b_500b_ci = as.numeric(mi_pmm1b_500_b$confidence_interval[1]   < trues &
-                               mi_pmm1b_500_b$confidence_interval[2]   > trues),
-    pmm1b_1000b_ci = as.numeric(mi_pmm1b_1000_b$confidence_interval[1] < trues &
-                                mi_pmm1b_1000_b$confidence_interval[2] > trues),
-    pmm5a_500b_ci = as.numeric(mi_pmm5a_500_b$confidence_interval[1]   < trues &
-                               mi_pmm5a_500_b$confidence_interval[2]   > trues),
-    pmm5a_1000b_ci = as.numeric(mi_pmm5a_1000_b$confidence_interval[1] < trues &
-                                mi_pmm5a_1000_b$confidence_interval[2] > trues),
-    pmm5b_500b_ci = as.numeric(mi_pmm5b_500_b$confidence_interval[1]   < trues &
-                               mi_pmm5b_500_b$confidence_interval[2]   > trues),
-    pmm5b_1000b_ci = as.numeric(mi_pmm5b_1000_b$confidence_interval[1] < trues &
-                                mi_pmm5b_1000_b$confidence_interval[2] > trues)
+    glm_500_ci    = c(mi_glm_500_y1$confidence_interval[1] < trues[1] & mi_glm_500_y1$confidence_interval[2] > trues[1], 
+                   mi_glm_500_y2$confidence_interval[1] < trues[2] & mi_glm_500_y2$confidence_interval[2] > trues[2],
+                   mi_glm_500_y3_all$confidence_interval[1] < trues[3] & mi_glm_500_y3_all$confidence_interval[2] > trues[3],
+                   mi_glm_500_y3_mis$confidence_interval[1] < trues[3] & mi_glm_500_y3_mis$confidence_interval[2] > trues[3]),
+      glm_1000_ci   = c(mi_glm_1000_y1$confidence_interval[1] < trues[1] & mi_glm_1000_y1$confidence_interval[2] > trues[1], 
+                     mi_glm_1000_y2$confidence_interval[1] < trues[2] & mi_glm_1000_y2$confidence_interval[2] > trues[2],
+                     mi_glm_1000_y3_all$confidence_interval[1] < trues[3] & mi_glm_1000_y3_all$confidence_interval[2] > trues[3],
+                     mi_glm_1000_y3_mis$confidence_interval[1] < trues[3] & mi_glm_1000_y3_mis$confidence_interval[2] > trues[3]),
+      nn1_500_ci    = c(mi_nn1_500_y1$confidence_interval[1] < trues[1] & mi_nn1_500_y1$confidence_interval[2] > trues[1], 
+                     mi_nn1_500_y2$confidence_interval[1] < trues[2] & mi_nn1_500_y2$confidence_interval[2] > trues[2],
+                     mi_nn1_500_y3_all$confidence_interval[1] < trues[3] & mi_nn1_500_y3_all$confidence_interval[2] > trues[3],
+                     mi_nn1_500_y3_mis$confidence_interval[1] < trues[3] & mi_nn1_500_y3_mis$confidence_interval[2] > trues[3]),
+      nn1_1000_ci   = c(mi_nn1_1000_y1$confidence_interval[1] < trues[1] & mi_nn1_1000_y1$confidence_interval[2] > trues[1], 
+                     mi_nn1_1000_y2$confidence_interval[1] < trues[2] & mi_nn1_1000_y2$confidence_interval[2] > trues[2],
+                     mi_nn1_1000_y3_all$confidence_interval[1] < trues[3] & mi_nn1_1000_y3_all$confidence_interval[2] > trues[3],
+                     mi_nn1_1000_y3_mis$confidence_interval[1] < trues[3] & mi_nn1_1000_y3_mis$confidence_interval[2] > trues[3]),
+      nn5_500_ci    = c(mi_nn5_500_y1$confidence_interval[1] < trues[1] & mi_nn5_500_y1$confidence_interval[2] > trues[1], 
+                     mi_nn5_500_y2$confidence_interval[1] < trues[2] & mi_nn5_500_y2$confidence_interval[2] > trues[2],
+                     mi_nn5_500_y3_all$confidence_interval[1] < trues[3] & mi_nn5_500_y3_all$confidence_interval[2] > trues[3],
+                     mi_nn5_500_y3_mis$confidence_interval[1] < trues[3] & mi_nn5_500_y3_mis$confidence_interval[2] > trues[3]),
+      nn5_1000_ci   = c(mi_nn5_1000_y1$confidence_interval[1] < trues[1] & mi_nn5_1000_y1$confidence_interval[2] > trues[1], 
+                     mi_nn5_1000_y2$confidence_interval[1] < trues[2] & mi_nn5_1000_y2$confidence_interval[2] > trues[2],
+                     mi_nn5_1000_y3_all$confidence_interval[1] < trues[3] & mi_nn5_1000_y3_all$confidence_interval[2] > trues[3],
+                     mi_nn5_1000_y3_mis$confidence_interval[1] < trues[3] & mi_nn5_1000_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1a_500_ci  = c(mi_pmm1a_500_y1$confidence_interval[1] < trues[1] & mi_pmm1a_500_y1$confidence_interval[2] > trues[1], 
+                     mi_pmm1a_500_y2$confidence_interval[1] < trues[2] & mi_pmm1a_500_y2$confidence_interval[2] > trues[2],
+                     mi_pmm1a_500_y3_all$confidence_interval[1] < trues[3] & mi_pmm1a_500_y3_all$confidence_interval[2] > trues[3],
+                     mi_pmm1a_500_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1a_500_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1b_500_ci  = c(mi_pmm1b_500_y1$confidence_interval[1] < trues[1] & mi_pmm1b_500_y1$confidence_interval[2] > trues[1], 
+                     mi_pmm1b_500_y3_all$confidence_interval[1] < trues[3] & mi_pmm1b_500_y3_all$confidence_interval[2] > trues[3],
+                     mi_pmm1b_500_y2$confidence_interval[1] < trues[2] & mi_pmm1b_500_y2$confidence_interval[2] > trues[2],
+                     mi_pmm1b_500_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1b_500_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1a_1000_ci = c(mi_pmm1a_1000_y1$confidence_interval[1] < trues[1] & mi_pmm1a_1000_y1$confidence_interval[2] > trues[1], 
+                      mi_pmm1a_1000_y2$confidence_interval[1] < trues[2] & mi_pmm1a_1000_y2$confidence_interval[2] > trues[2],
+                      mi_pmm1a_1000_y3_all$confidence_interval[1] < trues[3] & mi_pmm1a_1000_y3_all$confidence_interval[2] > trues[3],
+                      mi_pmm1a_1000_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1a_1000_y3_mis$confidence_interval[2] > trues[3]),
+      pmm1b_1000_ci = c(mi_pmm1b_1000_y1$confidence_interval[1] < trues[1] & mi_pmm1b_1000_y1$confidence_interval[2] > trues[1], 
+                      mi_pmm1b_1000_y2$confidence_interval[1] < trues[2] & mi_pmm1b_1000_y2$confidence_interval[2] > trues[2],
+                      mi_pmm1b_1000_y3_all$confidence_interval[1] < trues[3] & mi_pmm1b_1000_y3_all$confidence_interval[2] > trues[3],
+                      mi_pmm1b_1000_y3_mis$confidence_interval[1] < trues[3] & mi_pmm1b_1000_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5a_500_ci  = c(mi_pmm5a_500_y1$confidence_interval[1] < trues[1] & mi_pmm5a_500_y1$confidence_interval[2] > trues[1], 
+                     mi_pmm5a_500_y2$confidence_interval[1] < trues[2] & mi_pmm5a_500_y2$confidence_interval[2] > trues[2],
+                     mi_pmm5a_500_y3_all$confidence_interval[1] < trues[3] & mi_pmm5a_500_y3_all$confidence_interval[2] > trues[3],
+                     mi_pmm5a_500_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5a_500_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5b_500_ci  = c(mi_pmm5b_500_y1$confidence_interval[1] < trues[1] & mi_pmm5b_500_y1$confidence_interval[2] > trues[1], 
+                     mi_pmm5b_500_y2$confidence_interval[1] < trues[2] & mi_pmm5b_500_y2$confidence_interval[2] > trues[2],
+                     mi_pmm5b_500_y3_all$confidence_interval[1] < trues[3] & mi_pmm5b_500_y3_all$confidence_interval[2] > trues[3],
+                     mi_pmm5b_500_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5b_500_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5a_1000_ci = c(mi_pmm5a_1000_y1$confidence_interval[1] < trues[1] & mi_pmm5a_1000_y1$confidence_interval[2] > trues[1], 
+                      mi_pmm5a_1000_y2$confidence_interval[1] < trues[2] & mi_pmm5a_1000_y2$confidence_interval[2] > trues[2],
+                      mi_pmm5a_1000_y3_all$confidence_interval[1] < trues[3] & mi_pmm5a_1000_y3_all$confidence_interval[2] > trues[3],
+                      mi_pmm5a_1000_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5a_1000_y3_mis$confidence_interval[2] > trues[3]),
+      pmm5b_1000_ci = c(mi_pmm5b_1000_y1$confidence_interval[1] < trues[1] & mi_pmm5b_1000_y1$confidence_interval[2] > trues[1], 
+                      mi_pmm5b_1000_y2$confidence_interval[1] < trues[2] & mi_pmm5b_1000_y2$confidence_interval[2] > trues[2],
+                      mi_pmm5b_1000_y3_all$confidence_interval[1] < trues[3] & mi_pmm5b_1000_y3_all$confidence_interval[2] > trues[3],
+                      mi_pmm5b_1000_y3_mis$confidence_interval[1] < trues[3] & mi_pmm5b_1000_y3_mis$confidence_interval[2] > trues[3])
+    
   )
 }
 
@@ -407,40 +657,13 @@ stopCluster(cl)
 ## processing results
 setDT(results_simulation1)
 
-## just for knn added
-# results_simulation1_old <- readRDS("results/sim1-paper-results.RDS")
-# results_simulation1_process_old <- results_simulation1_old |> melt(id.vars = 1:3)
-# results_simulation1_process_old[, c("est", "sample", "type", "ci"):=tstrsplit(variable, "_")]
-# results_simulation1_process_old[sample %in% c("500b","1000b"), ci := "ci"]
-# results_simulation1_process_old[sample %in% c("500b","1000b"), ci_boot := TRUE]
-# results_simulation1_process_old[type == "ci", ci :="ci"]
-# results_simulation1_process_old[sample == "500b", sample := 500]
-# results_simulation1_process_old[sample == "1000b", sample := 1000]
-
 results_simulation1_process <- results_simulation1 |> melt(id.vars = 1:3)
-
-## just for knn added
-# unique_vars <- unique(results_simulation1_process$variable)
-# results_simulation1_process[, c("est", "sample", "type", "ci") := {
-#   splits <- tstrsplit(variable, "_")
-#   if (length(splits) == 3) {
-#     list(splits[[1]], splits[[2]], splits[[3]], NA)
-#   } else {
-#     list(splits[[1]], splits[[2]], splits[[3]], splits[[4]])
-#   }
-# }]
-
-results_simulation1_process[, c("est", "sample", "type", "ci"):=tstrsplit(variable, "_")]
-results_simulation1_process[sample %in% c("500b","1000b"), ci := "ci"]
+results_simulation1_process[, c("est", "sample", "ci"):=tstrsplit(variable, "_")]
 results_simulation1_process[sample %in% c("500b","1000b"), ci_boot := TRUE]
-results_simulation1_process[type == "ci", ci :="ci"]
-results_simulation1_process[sample == "500b", sample := 500]
-results_simulation1_process[sample == "1000b", sample := 1000]
+results_simulation1_process[sample == "500b", sample := "500"]
+results_simulation1_process[sample == "1000b", sample := "1000"]
 
-## just for knn added
-# results_simulation1_process_old <- readRDS("results/sim1-paper-results.RDS")
-# results_simulation1_process <- cbind(results_simulation1_process_old, results_simulation1)
-# saveRDS(results_simulation1_process, "results/sim1-paper-results.RDS")
+saveRDS(results_simulation1_process, file = "results/sim1-paper-results.RDS")
 
 # processing results without V2 -------------------------------------------
 
@@ -449,107 +672,6 @@ setDT(results_simulation1_no_v2)
 results_simulation1_no_v2_process <- results_simulation1_no_v2 |> melt(id.vars = 1:3)
 results_simulation1_no_v2_process[, c("est", "sample", "type"):=tstrsplit(variable, "_")]
 results_simulation1_no_v2_process[type == "ci", ci :="ci"]
-results_simulation1_no_v2_process <- results_simulation1_no_v2_process[,-c("nn1_5", "nn1_10", "nn5_5")]
 
 saveRDS(results_simulation1_no_v2_process, file = "results/sim1-paper-results-no-v2.RDS")
-
-## just for knn added
-# results_simulation1_no_v2_process_old <- readRDS( "results/sim1-paper-results-no-v2.RDS")
-# results_simulation1_no_v2_process <- rbind(results_simulation1_no_v2_process_old, results_simulation1_no_v2_process)
-# saveRDS(results_simulation1_no_v2_process, "results/sim1-paper-results-no-v2.RDS")
-
-
-# reporting in paper ------------------------------------------------------
-
-
-## table 1 data ------------------------------------------------------------
-
-
-tab1_ci <- results_simulation1_process[!is.na(ci) & is.na(ci_boot), .(ci=mean(value)), 
-                                    .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(y=paste(y, variable, sep = "_")) |>
-  transform(variable=NULL,
-            value = value*100,
-            sample=as.character(as.numeric(sample)/100)) |>
-  dcast(... ~ y, value.var = "value") 
-
-
-## stats
-tab1 <- results_simulation1_process[is.na(ci), .(bias=mean(value)-mean(trues), se = sd(value), 
-                                        rmse = sqrt((mean(value)-mean(trues))^2 + var(value))), 
-                                    .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(y=paste(y, variable, sep = "_")) |>
-  transform(variable=NULL,
-            value = value*100) |>
-  dcast(... ~ y, value.var = "value") |>
-  transform(type=ifelse(is.na(type), "srs", type))
-
-tab1[tab1_ci, on = c("type","est","sample"), ":="(y1_ci=i.y1_ci,y2_ci=i.y2_ci,y3_ci=i.y3_ci)]
-tab1[, y1_ci:=round(y1_ci,1)]
-tab1[, y2_ci:=round(y2_ci,1)]
-tab1[, y3_ci:=round(y3_ci,1)]
-
-tab1[, est:=factor(est, c("naive",  "glm", "nn1", "nn5", "pmm1a", "pmm1b", "pmm5a", "pmm5b"), 
-                   c("Naive", "GLM", "NN1", "NN5", "PMM1A", "PMM1B", "PMM5A", "PMM5B")
-                   , ordered = T)]
-
-tab1[, sample:=factor(sample, c(5,10), ordered = T)]
-
-setcolorder(tab1, c("type", "sample", "est", 
-                    "y1_bias", "y1_se", "y1_rmse", "y1_ci",
-                    "y2_bias", "y2_se", "y2_rmse", "y2_ci",
-                    "y3_bias", "y3_se", "y3_rmse", "y3_ci"))
-
-
-tab1[order(sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
-  xtable() |>
-  print.xtable(include.rownames = FALSE)
-
-
-## table 2 data ------------------------------------------------------------
-
-tab1_ci_no_v2 <- results_simulation1_no_v2_process[!is.na(ci), .(ci=mean(value)), 
-                                       .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(y=paste(y, variable, sep = "_no_v2")) |>
-  transform(variable=NULL,
-            value = value*100,
-            sample=as.character(as.numeric(sample)/100)) |>
-  dcast(... ~ y, value.var = "value")  |>
-  subset(est != "glm") |>
-  merge(tab1_ci, by = c("type", "est", "sample"))
-
-
-setcolorder(tab1_ci_no_v2, c("type", "est", "sample",  "y1_no_v2ci", "y1_ci", "y2_no_v2ci", "y2_ci", "y3_no_v2ci", "y3_ci"))
-
-
-tab1_ci_no_v2[order(-sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
-  xtable() |>
-  print.xtable(include.rownames = FALSE)
-
-
-## table 3 data ------------------------------------------------------------
-
-
-tab1_ci_b <- results_simulation1_process[!is.na(ci) & !is.na(ci_boot), .(ci=mean(value)), 
-                                         .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(y=paste(y, variable, "b", sep = "_")) |>
-  transform(variable=NULL,
-            value = value*100,
-            sample=as.character(as.numeric(sample)/100)) |>
-  dcast(... ~ y, value.var = "value") 
-
-tab3 <- tab1_ci_no_v2[, .(type, est, sample, y1_ci, y2_ci, y3_ci)]
-tab3 <- tab3[tab1_ci_b, on = c("type", "est", "sample"), ":="(y1_ci_b=y1_ci_b,y2_ci_b=y2_ci_b,y3_ci_b=y3_ci_b)]
-
-setcolorder(tab3, c("type", "est", "sample",  "y1_ci", "y1_ci_b", "y2_ci", "y2_ci_b", "y3_ci", "y3_ci_b"))
-
-
-
-tab3[order(-sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
-  xtable() |>
-  print.xtable(include.rownames = FALSE)
 

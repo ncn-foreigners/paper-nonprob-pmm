@@ -1,12 +1,4 @@
-library(nonprobsvy)
-library(sampling)
-library(doSNOW)
-library(progress)
-library(foreach)
-library(data.table)
-library(xtable)
-
-set.seed(2024)
+set.seed(seed_for_sim)
 
 N <- 1e5
 n <- 500
@@ -67,8 +59,6 @@ population1 <- population[xx1, ]
 # deterministic
 population2 <- population[xx2, ]
 
-sims <- 500
-cores <- 8
 cl <- makeCluster(cores)
 clusterExport(cl, c("N", "n"))
 
@@ -92,7 +82,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     rbinom(n = 1:NROW(population2), size = 1, prob = population2$p1),
     rbinom(n = 1:NROW(population2), size = 1, prob = population2$p2)
   )
-  base_w_bd <- N/n
+  
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
                            data = population[sample(1:N, n),])
   
@@ -113,10 +103,11 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "nn",
     control_outcome = controlOut(k = KK),
     pop_size = N,
-    family_outcome = "gaussian"
+    family_outcome = "gaussian",
+    control_inference = controlInf(pmm_exact_se = TRUE)
   )
   
-  pmmA_s <- nonprob(
+  pmmB_s <- nonprob(
     outcome = y1 + y2 ~ x1 + x2 + x3,
     data = population1[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
@@ -127,7 +118,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
 
-  pmmB_s <- nonprob(
+  pmmA_s <- nonprob(
     outcome = y1 + y2 ~ x1 + x2 + x3,
     data = population1[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
@@ -155,10 +146,11 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "nn",
     controlOut(k = KK),
     pop_size = N,
-    family_outcome = "gaussian"
+    family_outcome = "gaussian",
+    control_inference = controlInf(pmm_exact_se = TRUE)
   )
   
-  pmmA_d <- nonprob(
+  pmmB_d <- nonprob(
     outcome = y1 + y2 ~ x1 + x2 + x3,
     data = population2[flag_bd2 == 1, , drop = FALSE],
     svydesign = sample_prob,
@@ -169,7 +161,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_inference = controlInf(pmm_exact_se = TRUE)
   )
 
-  pmmB_d <- nonprob(
+  pmmA_d <- nonprob(
     outcome = y1 + y2 ~ x1 + x2 + x3,
     data = population2[flag_bd2 == 1, , drop = FALSE],
     svydesign = sample_prob,
@@ -224,22 +216,4 @@ results_simulation1_process[, c("est", "ci"):=tstrsplit(variable, "_")]
 results_simulation1_process[ci == "ci", ci :="ci"]
 
 saveRDS(results_simulation1_process, file = "results/sim-appen4-positivity.RDS")
-
-## just for knn added
-# results_simulation1_process_old <- readRDS( "results/sim-appen4-positivity.RDS")
-# results_simulation1_process <- rbind(results_simulation1_process_old, results_simulation1_process)
-# saveRDS(results_simulation1_process, "results/sim-appen4-positivity.RDS")
-
-tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues))*100, 
-                                                 se = sd(value)*100, 
-                                                 rmse = sqrt((mean(value)-mean(trues))^2 + var(value))*100), 
-                                    keyby=.(y, type, est)]
-
-tab2 <- results_simulation1_process[!is.na(ci), .(ci = mean(value)*100), 
-                                    keyby=.(y, type, est)]
-
-
-tab1[tab2, on = c("y", "type", "est")] |>
-  xtable(digits = 2) |>
-  print.xtable(include.rownames = F)
 

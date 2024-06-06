@@ -1,12 +1,4 @@
-library(nonprobsvy)
-library(sampling)
-library(doSNOW)
-library(progress)
-library(foreach)
-library(data.table)
-library(xtable)
-
-set.seed(2024)
+set.seed(seed_for_sim)
 
 N <- 1e5
 n <- 500
@@ -34,9 +26,6 @@ population <- data.frame(
   base_w_srs = N/n
 )
 
-sims <- 500
-cores <- 8
-
 cl <- makeCluster(cores)
 clusterExport(cl, c("N", "n"))
 
@@ -51,11 +40,11 @@ res <- foreach(k=1:sims, .combine = rbind,
                .packages = c("survey", "nonprobsvy", "dbscan"),
                .options.snow = opts,
                .errorhandling = "remove") %dopar% {
+  
   flag_bd1 <- pmin( # planned size ~~ 9K
     rbinom(n = 1:N, size = 1, prob = p1),
     rbinom(n = 1:N, size = 1, prob = p2)
   )
-  base_w_bd <- N/n
   
   sample_prob <- svydesign(ids= ~1, weights = ~ base_w_srs,
                            data = population[sample(1:N, n),])
@@ -75,6 +64,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     svydesign = sample_prob,
     method_outcome = "nn",
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     pop_size = N,
     family_outcome = "gaussian"
   )
@@ -86,7 +76,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     pop_size = N,
     family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     control_inference = controlInf(
       pmm_exact_se = TRUE
     )
@@ -99,7 +89,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     pop_size = N,
     family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     control_inference = controlInf(
       pmm_exact_se = TRUE
     )
@@ -126,7 +116,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     pop_size = N,
     family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     control_inference = controlInf(
       pmm_exact_se = TRUE
     )
@@ -139,7 +129,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     pop_size = N,
     family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     control_inference = controlInf(
       pmm_exact_se = TRUE
     )
@@ -152,7 +142,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     pop_size = N,
     family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     control_inference = controlInf(
       pmm_exact_se = TRUE
     )
@@ -165,7 +155,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "pmm",
     pop_size = N,
     family_outcome = "gaussian",
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     control_inference = controlInf(
       pmm_exact_se = TRUE
     )
@@ -216,22 +206,5 @@ results_simulation1_process[var == "ci", var:= NA]
 
 saveRDS(results_simulation1_process, file = "results/sim-appen5-multirobust.RDS")
 
-## just for knn added
-# results_simulation1_process_old <- readRDS( "results/sim-appen5-multirobust.RDS")
-# results_simulation1_process <- rbind(results_simulation1_process_old, results_simulation1_process)
-# saveRDS(results_simulation1_process, "results/sim-appen5-multirobust.RDS")
 
-
-tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues)), 
-                                                 se = sd(value), 
-                                                 rmse = sqrt((mean(value)-mean(trues))^2 + var(value))), 
-                                    keyby=.(y, est, var)]
-
-tab2 <- results_simulation1_process[!is.na(ci), .(ci = mean(value)*100), 
-                                    keyby=.(y, est, var)]
-
-
-tab1[tab2, on = c("y", "est", "var")] |>
-  xtable(digits = 2) |>
-  print.xtable(include.rownames = F)
 

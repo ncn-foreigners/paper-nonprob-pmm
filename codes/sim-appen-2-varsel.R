@@ -1,19 +1,9 @@
-library(nonprobsvy)
-library(sampling)
-library(doSNOW)
-library(progress)
-library(foreach)
-library(data.table)
-library(xtable)
-
 ## generate data
 
-seed_for_sim <- 2024
 set.seed(seed_for_sim)
 
 N <- 10000
 n_A <- 500
-sims <- 500 ## 20 minutes
 p <- 50
 KK <- 5
 alpha_vec1 <- c(-2, 1, 1, 1, 1, rep(0, p - 5))
@@ -52,7 +42,6 @@ pi_B2 <- plogis(3.5 + as.numeric(log(X^2) %*% alpha_vec2) - sin(X[, "X3"] + X[, 
 ## generate data
 population <- data.frame(pi_A_Y11, pi_A_Y12, pi_A_Y21, pi_A_Y22, Y_11, Y_12, Y_21, Y_22, X[, 2:p])
 
-cores <- 8
 cl <- makeCluster(cores)
 clusterExport(cl, c("N"))
 
@@ -104,11 +93,13 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_inference = controlInf(vars_selection = TRUE)
   )
 
+
   est_mi_pmmA_b1_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y11,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
@@ -117,29 +108,30 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y11,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "gaussian",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_pmmB_b1_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y11,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmB_b1_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y11,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     family_outcome = "gaussian",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   est_mi_nn_b1_y11_no <- nonprob(
@@ -147,6 +139,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = sample_B1,
     svydesign = sample_A_svy_Y11,
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "nn"
   )
@@ -158,7 +151,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK),
     family_outcome = "gaussian",
     method_outcome = "nn",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   ### Y12 -----------------------------------------------------------------
@@ -184,26 +177,28 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y12,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmA_b1_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y12,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "gaussian",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_pmmB_b1_y12_no <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y12,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
@@ -212,17 +207,18 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y12,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     family_outcome = "gaussian",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-  
+
   est_mi_nn_b1_y12_no <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y12,
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "nn"
   )
@@ -234,7 +230,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK),
     family_outcome = "gaussian",
     method_outcome = "nn",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   ### Y21 -----------------------------------------------------------------
@@ -259,7 +255,8 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y21,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
@@ -268,36 +265,38 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y21,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "binomial",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
 
   est_mi_pmmB_b1_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y21,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmB_b1_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y21,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     family_outcome = "binomial",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_nn_b1_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y21,
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "nn"
   )
@@ -309,7 +308,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK),
     family_outcome = "binomial",
     method_outcome = "nn",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   ### Y22 -----------------------------------------------------------------
@@ -334,26 +333,28 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y22,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmA_b1_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y22,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "binomial",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_pmmB_b1_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y22,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
@@ -362,17 +363,19 @@ res <- foreach(k=1:sims, .combine = rbind,
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y22,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     family_outcome = "binomial",
     method_outcome = "pmm",
     control_inference = controlInf(vars_selection = TRUE)
   )
-  
+
+
   est_mi_nn_b1_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B1,
     svydesign = sample_A_svy_Y22,
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "nn"
   )
@@ -384,11 +387,11 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK),
     family_outcome = "binomial",
     method_outcome = "nn",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   ## sample B2 ---------------------------------------------------------------
-  ## Y11 -----------------------------------------------------------------
+  ### Y11 -----------------------------------------------------------------
   est_mi_glm_b2_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -396,7 +399,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "gaussian"
   )
-
+  
   est_mi_glm_b2_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -405,43 +408,46 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     control_inference = controlInf(vars_selection = TRUE)
   )
-
+  
+  
   est_mi_pmmA_b2_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y11,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmA_b2_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y11,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "gaussian",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_pmmB_b2_y11_no <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y11,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmB_b2_y11_sel <- nonprob(
     outcome = as.formula(paste("Y_11 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y11,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     family_outcome = "gaussian",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   est_mi_nn_b2_y11_no <- nonprob(
@@ -449,6 +455,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = sample_B2,
     svydesign = sample_A_svy_Y11,
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "nn"
   )
@@ -460,7 +467,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK),
     family_outcome = "gaussian",
     method_outcome = "nn",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   ### Y12 -----------------------------------------------------------------
@@ -472,7 +479,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "gaussian"
   )
-
+  
   est_mi_glm_b2_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -481,43 +488,45 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "gaussian",
     control_inference = controlInf(vars_selection = TRUE)
   )
-
+  
   est_mi_pmmA_b2_y12_no <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y12,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmA_b2_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y12,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "gaussian",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_pmmB_b2_y12_no <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y12,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmB_b2_y12_sel <- nonprob(
     outcome = as.formula(paste("Y_12 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y12,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     family_outcome = "gaussian",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   est_mi_nn_b2_y12_no <- nonprob(
@@ -525,6 +534,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = sample_B2,
     svydesign = sample_A_svy_Y12,
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "gaussian",
     method_outcome = "nn"
   )
@@ -536,7 +546,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK),
     family_outcome = "gaussian",
     method_outcome = "nn",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   ### Y21 -----------------------------------------------------------------
@@ -547,7 +557,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "binomial"
   )
-
+  
   est_mi_glm_b2_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -556,50 +566,53 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     control_inference = controlInf(vars_selection = TRUE)
   )
-
+  
   est_mi_pmmA_b2_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y21,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmA_b2_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y21,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "binomial",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_pmmB_b2_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y21,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmB_b2_y21_sel <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y21,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     family_outcome = "binomial",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_nn_b2_y21_no <- nonprob(
     outcome = as.formula(paste("Y_21 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y21,
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "nn"
   )
@@ -611,7 +624,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK),
     family_outcome = "binomial",
     method_outcome = "nn",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   ### Y22 -----------------------------------------------------------------
@@ -622,7 +635,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     method_outcome = "glm",
     family_outcome = "binomial"
   )
-
+  
   est_mi_glm_b2_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
@@ -631,50 +644,54 @@ res <- foreach(k=1:sims, .combine = rbind,
     family_outcome = "binomial",
     control_inference = controlInf(vars_selection = TRUE)
   )
-
+  
   est_mi_pmmA_b2_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y22,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmA_b2_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y22,
-    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_outcome = controlOut(k = KK, predictive_match = 2),
     family_outcome = "binomial",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
-
+  
   est_mi_pmmB_b2_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y22,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "pmm"
   )
-
+  
   est_mi_pmmB_b2_y22_sel <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y22,
-    control_outcome = controlOut(k = KK, predictive_match = 2),
+    control_outcome = controlOut(k = KK, predictive_match = 1),
     family_outcome = "binomial",
     method_outcome = "pmm",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
+  
   
   est_mi_nn_b2_y22_no <- nonprob(
     outcome = as.formula(paste("Y_22 ~ ", as.character(X_formula)[2])),
     data = sample_B2,
     svydesign = sample_A_svy_Y22,
     control_outcome = controlOut(k = KK),
+    control_inference = controlInf(pmm_exact_se = TRUE),
     family_outcome = "binomial",
     method_outcome = "nn"
   )
@@ -686,7 +703,7 @@ res <- foreach(k=1:sims, .combine = rbind,
     control_outcome = controlOut(k = KK),
     family_outcome = "binomial",
     method_outcome = "nn",
-    control_inference = controlInf(vars_selection = TRUE)
+    control_inference = controlInf(vars_selection = TRUE, pmm_exact_se = TRUE)
   )
   
   data.frame(
@@ -903,29 +920,3 @@ results_simulation1_process <- res |> melt(id.vars = 1:4)
 results_simulation1_process[, c("est", "var", "ci"):=tstrsplit(variable, "_")]
 
 saveRDS(results_simulation1_process, file = "results/sim-appen2-varsel-results.RDS")
-
-## just for knn added
-# results_simulation1_process_old <- readRDS( "results/sim-appen2-varsel-results.RDS")
-# results_simulation1_process <- rbind(results_simulation1_process_old, results_simulation1_process)
-# saveRDS(results_simulation1_process, "results/sim-appen2-varsel-results.RDS")
-
-tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues))*100, 
-                                                 se = sd(value)*100, 
-                                                 rmse = sqrt((mean(value)-mean(trues))^2 + var(value))*100), 
-                                    keyby=.(sample, y, est, var)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(sample=paste(sample, variable, sep = "_")) |>
-  transform(variable=NULL) |>
-  dcast(... ~ sample, value.var = "value") |>
-  {\(x) x[order(y, est, var)]}() 
-
-tab2 <- results_simulation1_process[!is.na(ci), .(ci = mean(value)*100), 
-                                    keyby=.(sample, y, est, var)]  |>
-  dcast(... ~ sample, value.var = "ci")
-
-tab1[tab2, on = c("y", "est", "var")] |>
-  setcolorder(c("y", "est", "var", "b1_bias", "b1_se", "b1_rmse", "b1", "b2_bias", "b2_se", "b2_rmse", "b2")) |>
-  {\(x) x[,y:=NULL]}() |>
-  xtable(digits = 2) |>
-  print.xtable(include.rownames = FALSE)
-               
