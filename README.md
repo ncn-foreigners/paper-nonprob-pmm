@@ -11,7 +11,7 @@ Repository for [Chlebicki P., Chrostowski, Ł. & Beręsewicz, M., "Data integrat
 
 Install the development version of the `nonprobsvy` package from GitHub:
 
-```r
+``` r
 install.packages("remotes")
 remotes::install_github("ncn-foreigners/nonprobsvy@dev") ## 
 ```
@@ -21,11 +21,12 @@ remotes::install_github("ncn-foreigners/nonprobsvy@dev") ##
 -   `codes/`
     -   `sim-run-all.R` - the code to run all simulations (it takes about 8 hours with 8 cores)
     -   `sim-main-paper.R` - main simulation study (section 4)
-    -   `sim-appen-1-choose-k.R` -- additional simulation (section C.1) 
-    -   `sim-appen-2-varsel.R` -- additional simulation (section C.2) 
+    -   `sim-appen-1-choose-k.R` -- additional simulation (section C.1)
+    -   `sim-appen-2-varsel.R` -- additional simulation (section C.2)
     -   `sim-appen-3-nonparam.R` -- additional simulation (section C.3)
     -   `sim-appen-4-positivity.R` -- additional simulation (section C.4)
     -   `sim-appen-5-multirobust.R` -- additional simulation (section C.5)
+    -   `reporting.R` -- code to generate tables and figures from the paper
 -   `results/`
     -   `sim1-paper-results.RDS` -- main simulation study results (table 4.1 and 4.1)
     -   `sim1-paper-results-no-v2.RDS` -- main simulation study results (table 4.2)

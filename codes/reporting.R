@@ -1,5 +1,6 @@
 ## reportin
-
+library(data.table)
+library(xtable)
 
 # simulation main paper ---------------------------------------------------
 
@@ -7,44 +8,36 @@ results_simulation1_process <- readRDS(file = "results/sim1-paper-results.RDS")
 results_simulation1_no_v2_process <- readRDS(file = "results/sim1-paper-results-no-v2.RDS")
 
 tab1_ci <- results_simulation1_process[!is.na(ci) & is.na(ci_boot), .(ci=mean(value)), 
-                                       .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(y=paste(y, variable, sep = "_")) |>
-  transform(variable=NULL,
-            value = value*100,
-            sample=as.character(as.numeric(sample)/100)) |>
-  dcast(... ~ y, value.var = "value") 
+                                       .(est, sample, y)] |>
+  transform(est = ifelse(grepl("all", y), est, est)) |>
+  transform(est = ifelse(grepl("mis", y), paste0(est, "_mis"), est),
+            y = gsub("_(mis|all)", "", y)) |>
+  transform(ci = ci*100) |>
+  dcast(... ~ y, value.var = "ci") 
 
 
 ## stats
 tab1 <- results_simulation1_process[is.na(ci), .(bias=mean(value)-mean(trues), se = sd(value), 
                                                  rmse = sqrt((mean(value)-mean(trues))^2 + var(value))), 
-                                    .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
+                                    .(est, sample, y)] |>
+  transform(est = ifelse(grepl("all", y), est, est)) |>
+  transform(est = ifelse(grepl("mis", y), paste0(est, "_mis"), est),
+            y = gsub("_(mis|all)", "", y)) |>
+  melt(id.vars = c(1,2,3)) |>
   transform(y=paste(y, variable, sep = "_")) |>
   transform(variable=NULL,
             value = value*100) |>
-  dcast(... ~ y, value.var = "value") |>
-  transform(type=ifelse(is.na(type), "srs", type))
+  dcast(... ~ y, value.var = "value")
 
-tab1[tab1_ci, on = c("type","est","sample"), ":="(y1_ci=i.y1_ci,y2_ci=i.y2_ci,y3_ci=i.y3_ci)]
-tab1[, y1_ci:=round(y1_ci,1)]
-tab1[, y2_ci:=round(y2_ci,1)]
-tab1[, y3_ci:=round(y3_ci,1)]
+tab1[tab1_ci, on = c("est","sample"), ":="(y1_ci=i.y1,y2_ci=i.y2,y3_ci=i.y3)]
 
-tab1[, est:=factor(est, c("naive",  "glm", "nn1", "nn5", "pmm1a", "pmm1b", "pmm5a", "pmm5b"), 
-                   c("Naive", "GLM", "NN1", "NN5", "PMM1A", "PMM1B", "PMM5A", "PMM5B")
-                   , ordered = T)]
-
-tab1[, sample:=factor(sample, c(5,10), ordered = T)]
-
-setcolorder(tab1, c("type", "sample", "est", 
+setcolorder(tab1, c("sample", "est", 
                     "y1_bias", "y1_se", "y1_rmse", "y1_ci",
                     "y2_bias", "y2_se", "y2_rmse", "y2_ci",
                     "y3_bias", "y3_se", "y3_rmse", "y3_ci"))
 
 
-tab1[order(sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
+tab1[order(sample, est),][, ":="(sample=NULL)] |>
   xtable() |>
   print.xtable(include.rownames = FALSE)
 
@@ -52,21 +45,18 @@ tab1[order(sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
 ## table 2 data ------------------------------------------------------------
 
 tab1_ci_no_v2 <- results_simulation1_no_v2_process[!is.na(ci), .(ci=mean(value)), 
-                                                   .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(y=paste(y, variable, sep = "_no_v2")) |>
-  transform(variable=NULL,
-            value = value*100,
-            sample=as.character(as.numeric(sample)/100)) |>
-  dcast(... ~ y, value.var = "value")  |>
-  subset(est != "glm") |>
-  merge(tab1_ci, by = c("type", "est", "sample"))
+                                                   .(est, sample, y)] |>
+  transform(est = ifelse(grepl("all", y), est, est)) |>
+  transform(est = ifelse(grepl("mis", y), paste0(est, "_mis"), est),
+            y = gsub("_(mis|all)", "", y)) |>
+  transform(ci = ci*100) |>
+  dcast(... ~ y, value.var = "ci") 
 
+setnames(tab1_ci_no_v2, names(tab1_ci_no_v2), c("est", "sample", "y1_no_v2ci", "y2_no_v2ci", "y3_no_v2ci"))
 
-setcolorder(tab1_ci_no_v2, c("type", "est", "sample",  "y1_no_v2ci", "y1_ci", "y2_no_v2ci", "y2_ci", "y3_no_v2ci", "y3_ci"))
-
-
-tab1_ci_no_v2[order(-sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
+tab1_ci[tab1_ci_no_v2][!grepl("glm|mis", est)] |>
+  setcolorder(x= _, c("est", "sample", "y1", "y1_no_v2ci", "y2", "y2_no_v2ci", "y3", "y3_no_v2ci")) |> 
+  {\(x) x[order(-sample, est)][, ":="(sample=NULL)] }()  |>
   xtable() |>
   print.xtable(include.rownames = FALSE)
 
@@ -75,25 +65,18 @@ tab1_ci_no_v2[order(-sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
 
 
 tab1_ci_b <- results_simulation1_process[!is.na(ci) & !is.na(ci_boot), .(ci=mean(value)), 
-                                         .(type, est, sample, y)] |>
-  melt(id.vars = c(1, 4,2,3)) |>
-  transform(y=paste(y, variable, "b", sep = "_")) |>
-  transform(variable=NULL,
-            value = value*100,
-            sample=as.character(as.numeric(sample)/100)) |>
-  dcast(... ~ y, value.var = "value") 
+                                         .(est, sample, y)] |>
+  transform(est = ifelse(grepl("all", y), est, est)) |>
+  transform(est = ifelse(grepl("mis", y), paste0(est, "_mis"), est),
+            y = gsub("_(mis|all)", "", y)) |>
+  transform(ci = ci*100) |>
+  dcast(... ~ y, value.var = "ci") 
 
-tab3 <- tab1_ci_no_v2[, .(type, est, sample, y1_ci, y2_ci, y3_ci)]
-tab3 <- tab3[tab1_ci_b, on = c("type", "est", "sample"), ":="(y1_ci_b=y1_ci_b,y2_ci_b=y2_ci_b,y3_ci_b=y3_ci_b)]
-
-setcolorder(tab3, c("type", "est", "sample",  "y1_ci", "y1_ci_b", "y2_ci", "y2_ci_b", "y3_ci", "y3_ci_b"))
-
-
-
-tab3[order(-sample,-type, est),][, ":="(sample=NULL,type=NULL)] |>
+tab1_ci[tab1_ci_b, on = c("est", "sample"), ":="(y1_ci_b=y1,y2_ci_b=y2,y3_ci_b=y3)][!grepl("mis|glm", est)] |>
+  setcolorder(c("est", "sample", "y1", "y1_ci_b", "y2", "y2_ci_b", "y3", "y3_ci_b")) |>
+  {\(x) x[order(-sample, est)][, ":="(sample=NULL)] }()  |>
   xtable() |>
   print.xtable(include.rownames = FALSE)
-
 
 
 

@@ -69,7 +69,8 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "nn",
-    family_outcome = "gaussian"
+    family_outcome = "gaussian",
+    control_inference = controlInf(pmm_exact_se = TRUE)
   )
   # 
   
@@ -128,7 +129,8 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "nn",
-    family_outcome = "gaussian"
+    family_outcome = "gaussian",
+    control_inference = controlInf(pmm_exact_se = TRUE)
   )
   
   pmmB_y2 <- nonprob(
@@ -186,7 +188,8 @@ res <- foreach(k=1:sims, .combine = rbind,
     data = population[flag_bd1 == 1, , drop = FALSE],
     svydesign = sample_prob,
     method_outcome = "nn",
-    family_outcome = "gaussian"
+    family_outcome = "gaussian",
+    control_inference = controlInf(pmm_exact_se = TRUE)
   )
   
   pmmB_y3 <- nonprob(
