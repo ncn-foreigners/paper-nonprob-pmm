@@ -142,6 +142,7 @@ tab1[tab2, on = c("y", "est", "var")] |>
 # simulation appendix 3 ---------------------------------------------------
 
 results_simulation1_process <- readRDS(file = "results/sim-appen3-nonparam.RDS")
+results_simulation1_process <- results_simulation1_process[k %in% unique(results_simulation1_process$k)[1:500]]
 
 tab1 <- results_simulation1_process[is.na(ci), .(bias=(mean(value)-mean(trues))*100, 
                                                  se = sd(value)*100, 

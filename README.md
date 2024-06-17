@@ -4,7 +4,7 @@
 
 Repository for [Chlebicki P., Chrostowski, Ł. & Beręsewicz, M., "Data integration of non-probability and probability samples with predictive mean matching"](paper/paper-pmm.pdf).
 
--   [preprint \@ arXiv](https://arxiv.org/abs/2403.13750v1)
+-   [preprint \@ arXiv](https://arxiv.org/abs/2403.13750)
 -   How to cite: `Chlebicki, P., Chrostowski, Ł., & Beręsewicz, M. (2024). Data integration of non-probability and probability samples with predictive mean matching. arXiv preprint arXiv:2403.13750.`
 
 ## Setup
