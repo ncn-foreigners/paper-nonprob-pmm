@@ -40,7 +40,7 @@ remotes::install_github("ncn-foreigners/nonprobsvy@dev") ##
 
 For this paper we developed two predictive mean matching (PMM) estimators and implemented them into the [`nonprobsvy`](https://github.com/ncn-foreigners/nonprobsvy) package. Below you can find functions to run the
 
--   PMM estimator $\hat{y}-y$ matching
+-   PMM estimator $\hat{y}-\hat{y}$ matching
 
 ``` r
 PMM_A <- nonprob(outcome = y1 ~ x1 + x2,
@@ -52,7 +52,7 @@ PMM_A <- nonprob(outcome = y1 ~ x1 + x2,
                  control_inference = controlInf(pmm_exact_se = TRUE))
 ```
 
--   PMM estimator $\hat{y}-\hat{y}$ matching
+-   PMM estimator $\hat{y}-y$ matching
 
 ``` r
 PMM_A <- nonprob(outcome = y1 ~ x1 + x2,
@@ -66,4 +66,4 @@ PMM_A <- nonprob(outcome = y1 ~ x1 + x2,
 
 ## Funding
 
-Work on this package is supported by the National Science Centre, OPUS 20 grant no. 2020/39/B/HS4/00941.
+Work on this paper was supported by the National Science Centre, OPUS 20 grant no. 2020/39/B/HS4/00941.
